@@ -58,11 +58,13 @@
     }
 
     #character {
-      width: 180px;
-      filter: drop-shadow(0 0 25px var(--glow-color));
-      animation: float 6s ease-in-out infinite;
+      width: 80px;
+      height: 80px;
+      filter: drop-shadow(0 0 15px var(--glow-color));
+      animation: float 4s ease-in-out infinite;
       transition: all 0.3s ease;
       z-index: 1;
+      position: relative;
     }
 
     @keyframes float {
@@ -71,22 +73,30 @@
     }
 
     @keyframes pulse-glow {
-      0%, 100% { filter: drop-shadow(0 0 25px var(--glow-color)); }
-      50% { filter: drop-shadow(0 0 40px var(--glow-color)) drop-shadow(0 0 60px var(--glow-color)); }
+      0%, 100% { filter: drop-shadow(0 0 15px var(--glow-color)) drop-shadow(0 0 25px var(--glow-color)); }
+      50% { filter: drop-shadow(0 0 30px var(--glow-color)) drop-shadow(0 0 45px var(--glow-color)); }
+    }
+
+    @keyframes thinking-pulse {
+      0%, 100% { filter: drop-shadow(0 0 20px #ffaa00); }
+      50% { filter: drop-shadow(0 0 35px #ffaa00); }
+    }
+
+    @keyframes speaking-pulse {
+      0%, 100% { filter: drop-shadow(0 0 20px var(--success-color)); }
+      50% { filter: drop-shadow(0 0 35px var(--success-color)); }
     }
 
     .listening #character {
-      animation: float 6s ease-in-out infinite, pulse-glow 2s ease-in-out infinite;
+      animation: float 4s ease-in-out infinite, pulse-glow 1.5s ease-in-out infinite;
     }
 
     .thinking #character {
-      animation: float 6s ease-in-out infinite;
-      filter: drop-shadow(0 0 30px #ffaa00);
+      animation: float 4s ease-in-out infinite, thinking-pulse 2s ease-in-out infinite;
     }
 
     .speaking #character {
-      animation: float 3s ease-in-out infinite;
-      filter: drop-shadow(0 0 35px var(--success-color));
+      animation: float 2s ease-in-out infinite, speaking-pulse 1s ease-in-out infinite;
     }
 
     #controls {
@@ -347,7 +357,8 @@
       }
 
       #character {
-        width: 140px;
+        width: 70px;
+        height: 70px;
       }
 
       button {
@@ -358,7 +369,8 @@
 
     @media (max-width: 480px) {
       #character {
-        width: 120px;
+        width: 60px;
+        height: 60px;
       }
 
       .crt-container {
@@ -367,11 +379,15 @@
       }
 
       #output {
-        height: 200px;
+        height: 180px;
       }
 
       #interpretation {
-        height: 60px;
+        height: 50px;
+      }
+
+      #main-container {
+        gap: 15px;
       }
     }
 
@@ -442,42 +458,65 @@
   <canvas id="starfield"></canvas>
 
   <div id="main-container">
-    <svg id="character" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80">
-      <!-- Enhanced character with more details -->
-      <defs>
-        <radialGradient id="faceGradient" cx="0.5" cy="0.3">
-          <stop offset="0%" stop-color="#fae4b8"/>
-          <stop offset="100%" stop-color="var(--char-face-color)"/>
-        </radialGradient>
-      </defs>
-      
-      <!-- Hair -->
-      <rect x="18" y="6" width="44" height="8" fill="var(--char-hair-color)" rx="2"/>
-      <rect x="16" y="10" width="48" height="6" fill="var(--char-hair-color)" rx="1"/>
-      
-      <!-- Face -->
-      <rect x="22" y="16" width="36" height="42" fill="url(#faceGradient)" rx="2"/>
-      
-      <!-- Eyebrows -->
-      <rect id="leftBrow" x="26" y="26" width="10" height="3" fill="var(--char-hair-color)" rx="1"/>
-      <rect id="rightBrow" x="44" y="26" width="10" height="3" fill="var(--char-hair-color)" rx="1"/>
-      
-      <!-- Eyes -->
-      <ellipse id="leftEye" cx="31" cy="34" rx="4" ry="3" fill="white"/>
-      <ellipse cx="31" cy="34" rx="2" ry="2" fill="black"/>
-      <ellipse id="rightEye" cx="49" cy="34" rx="4" ry="3" fill="white"/>
-      <ellipse cx="49" cy="34" rx="2" ry="2" fill="black"/>
-      
-      <!-- Nose -->
-      <rect x="38" y="38" width="4" height="6" fill="#e5c595" rx="1"/>
-      
-      <!-- Mouth -->
-      <rect id="mouth" x="32" y="48" width="16" height="3" fill="black" rx="1"/>
-      
-      <!-- Shirt -->
-      <rect x="26" y="58" width="28" height="20" fill="#2a4d7a" rx="2"/>
-      <rect x="30" y="62" width="20" height="2" fill="#4a6d9a"/>
-    </svg>
+    <div id="character">
+      <!-- Gender-neutral glowing orb character -->
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+        <defs>
+          <radialGradient id="orbGradient" cx="0.3" cy="0.3">
+            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9"/>
+            <stop offset="30%" stop-color="var(--glow-color)" stop-opacity="0.8"/>
+            <stop offset="70%" stop-color="var(--main-text-color)" stop-opacity="0.6"/>
+            <stop offset="100%" stop-color="#2a0040" stop-opacity="0.9"/>
+          </radialGradient>
+          <radialGradient id="coreGradient" cx="0.4" cy="0.3">
+            <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
+            <stop offset="50%" stop-color="var(--glow-color)" stop-opacity="0.9"/>
+            <stop offset="100%" stop-color="var(--main-text-color)" stop-opacity="0.7"/>
+          </radialGradient>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+            <feMerge> 
+              <feMergeNode in="coloredBlur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+        
+        <!-- Outer glow ring -->
+        <circle id="outerRing" cx="50" cy="50" r="45" fill="none" stroke="var(--glow-color)" stroke-width="2" opacity="0.4" filter="url(#glow)"/>
+        
+        <!-- Main orb body -->
+        <circle id="mainOrb" cx="50" cy="50" r="35" fill="url(#orbGradient)" filter="url(#glow)"/>
+        
+        <!-- Inner core -->
+        <circle id="innerCore" cx="50" cy="50" r="20" fill="url(#coreGradient)" opacity="0.8"/>
+        
+        <!-- Animated energy particles -->
+        <g id="particles">
+          <circle id="particle1" cx="30" cy="40" r="2" fill="var(--glow-color)" opacity="0.7">
+            <animateTransform attributeName="transform" type="rotate" values="0 50 50;360 50 50" dur="8s" repeatCount="indefinite"/>
+          </circle>
+          <circle id="particle2" cx="70" cy="35" r="1.5" fill="#ffffff" opacity="0.6">
+            <animateTransform attributeName="transform" type="rotate" values="0 50 50;-360 50 50" dur="12s" repeatCount="indefinite"/>
+          </circle>
+          <circle id="particle3" cx="45" cy="25" r="1" fill="var(--success-color)" opacity="0.5">
+            <animateTransform attributeName="transform" type="rotate" values="0 50 50;360 50 50" dur="6s" repeatCount="indefinite"/>
+          </circle>
+        </g>
+        
+        <!-- Facial features that appear during interaction -->
+        <g id="face" opacity="0">
+          <!-- Simple eyes -->
+          <circle id="leftEyeDot" cx="42" cy="45" r="3" fill="#ffffff" opacity="0.9"/>
+          <circle cx="42" cy="45" r="1.5" fill="#000"/>
+          <circle id="rightEyeDot" cx="58" cy="45" r="3" fill="#ffffff" opacity="0.9"/>
+          <circle cx="58" cy="45" r="1.5" fill="#000"/>
+          
+          <!-- Simple mouth -->
+          <path id="mouthPath" d="M 45 55 Q 50 60 55 55" stroke="#ffffff" stroke-width="2" fill="none" opacity="0.8"/>
+        </g>
+      </svg>
+    </div>
 
     <div id="controls">
       <div id="progress-bar">
@@ -540,16 +579,20 @@
   <script>
     // --- ENHANCED CONSTANTS ---
     const API_KEY = "AIzaSyDSU9YUQVoFPftARc4TpEI4uUilvPcMOcc";
-    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
-    const API_COOLDOWN_MS = 4000; // Reduced cooldown for better responsiveness
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+    const API_COOLDOWN_MS = 3000; // Reduced cooldown for better responsiveness
 
     // --- DOM REFERENCES ---
     const elements = {
-      mouth: document.getElementById('mouth'),
-      leftBrow: document.getElementById('leftBrow'),
-      rightBrow: document.getElementById('rightBrow'),
-      leftEye: document.getElementById('leftEye'),
-      rightEye: document.getElementById('rightEye'),
+      character: document.getElementById('character'),
+      mainOrb: document.getElementById('mainOrb'),
+      innerCore: document.getElementById('innerCore'),
+      outerRing: document.getElementById('outerRing'),
+      face: document.getElementById('face'),
+      mouthPath: document.getElementById('mouthPath'),
+      leftEyeDot: document.getElementById('leftEyeDot'),
+      rightEyeDot: document.getElementById('rightEyeDot'),
+      particles: document.getElementById('particles'),
       toggleBtn: document.getElementById('toggleBtn'),
       listeningIndicator: document.getElementById('listeningIndicator'),
       thinkingIndicator: document.getElementById('thinkingIndicator'),
@@ -559,7 +602,6 @@
       accentSelect: document.getElementById('accentSelect'),
       difficultySelect: document.getElementById('difficultySelect'),
       interpretationBox: document.getElementById('interpretation'),
-      character: document.getElementById('character'),
       progressFill: document.getElementById('progress-fill'),
       qualityStars: document.querySelectorAll('.quality-star')
     };
@@ -756,127 +798,148 @@
 
     // --- ENHANCED AI SYSTEM ---
     async function generateInterpretation(transcript) {
-      const systemPrompt = `You are an expert learning analyst. Provide a concise, insightful interpretation of what the student is trying to explain. Focus on:
-      1. The core concept they're addressing
-      2. Their level of understanding (beginner/intermediate/advanced)
-      3. Any misconceptions or gaps
-      
-      Respond in 8 words or less, being specific and helpful.`;
-      
-      return await queryGemini(systemPrompt, `Analyze this student explanation: "${transcript}"`);
+      try {
+        const prompt = `Analyze this student's explanation in 6 words or less, focusing on the main concept: "${transcript}"`;
+        return await queryGemini(prompt);
+      } catch (error) {
+        console.error("Interpretation error:", error);
+        return "Understanding your explanation...";
+      }
     }
 
     async function generateEnhancedResponse(transcript) {
-      const difficulty = elements.difficultySelect.value;
-      const mode = elements.modeSelect.value;
-      const conversationContext = state.conversationHistory.slice(-6); // Last 3 exchanges
-      
-      let systemPrompt = buildEnhancedSystemPrompt(mode, difficulty);
-      let userPrompt = buildContextualUserPrompt(transcript, conversationContext);
-      
-      return await queryGemini(systemPrompt, userPrompt);
+      try {
+        const difficulty = elements.difficultySelect.value;
+        const mode = elements.modeSelect.value;
+        const conversationContext = state.conversationHistory.slice(-4); // Last 2 exchanges
+        
+        let prompt = buildEnhancedPrompt(transcript, mode, difficulty, conversationContext);
+        return await queryGemini(prompt);
+      } catch (error) {
+        console.error("Response generation error:", error);
+        return "That's interesting! Can you tell me more about that specific part?";
+      }
     }
 
-    function buildEnhancedSystemPrompt(mode, difficulty) {
-      const basePersona = `You are an expert tutor inspired by Richard Feynman, Carl Sagan, and the best Socratic teachers. Your mission is to guide students to deep understanding through strategic questioning.`;
-      
-      const modeInstructions = {
-        'interactive': `Engage in real-time dialogue. Ask one probing question that builds on their explanation and reveals deeper understanding.`,
-        'askBetween': `After each point they make, ask a clarifying or extending question that helps them think more deeply.`,
-        'socratic': `Use pure Socratic method - guide them to discover answers through carefully crafted questions. Never give direct answers.`,
-        'askEnd': `Listen to their full explanation, then provide comprehensive questioning.`,
-        'summary': `Provide thoughtful summary and strategic follow-up questions.`
-      };
-
-      const difficultyAdjustments = {
-        'beginner': `Use simple language, encourage confidence, ask foundational questions about basic concepts.`,
-        'intermediate': `Challenge them with connections between concepts, ask about applications and implications.`,
-        'advanced': `Push for deep analysis, edge cases, and novel applications. Ask about underlying principles and theoretical frameworks.`
-      };
-
-      return `${basePersona}
-
-${modeInstructions[mode]}
-
-Difficulty Level: ${difficultyAdjustments[difficulty]}
-
-Guidelines:
-- Keep responses under 40 words, conversational and spoken-friendly
-- Ask questions that reveal understanding gaps or deepen insight
-- Use encouraging language while maintaining intellectual rigor
-- If they're wrong, guide them to discover the correct answer rather than stating it directly
-- Build on their interests and connect to real-world applications
-- Vary your question types: analytical, comparative, predictive, evaluative`;
-    }
-
-    function buildContextualUserPrompt(transcript, conversationContext) {
+    function buildEnhancedPrompt(transcript, mode, difficulty, conversationContext) {
       let contextStr = "";
       if (conversationContext.length > 0) {
-        contextStr = "Previous conversation:\n" + 
-          conversationContext.map(msg => `${msg.role}: ${msg.content}`).join('\n') + '\n\n';
+        contextStr = "Previous conversation: " + 
+          conversationContext.map(msg => `${msg.role}: ${msg.content}`).join(' | ') + '\n\n';
       }
       
-      if (state.currentTopic && !transcript.toLowerCase().includes(state.currentTopic.toLowerCase())) {
-        contextStr += `Current topic focus: ${state.currentTopic}\n\n`;
-      }
-      
-      return `${contextStr}Student just said: "${transcript}"
+      const modeInstructions = {
+        'interactive': 'Ask one follow-up question to deepen understanding.',
+        'askBetween': 'Ask a clarifying question about their explanation.',
+        'socratic': 'Guide them to discover answers through questioning. Never give direct answers.',
+        'askEnd': 'Provide comprehensive questioning after their explanation.',
+        'summary': 'Summarize and ask strategic follow-up questions.'
+      };
 
-Your task: Respond with one insightful question that helps them think deeper about this topic. Make it conversational and encouraging.`;
+      const difficultyLevels = {
+        'beginner': 'Use simple language and ask foundational questions.',
+        'intermediate': 'Ask about connections and applications.',
+        'advanced': 'Push for deep analysis and underlying principles.'
+      };
+
+      return `You are a friendly tutor using the Feynman technique. ${modeInstructions[mode]} ${difficultyLevels[difficulty]}
+
+${contextStr}Student said: "${transcript}"
+
+Respond in under 35 words with one thoughtful question. Be encouraging and conversational.`;
     }
 
     async function generateSessionSummary(sessionData) {
-      const systemPrompt = `You are providing a session wrap-up summary. Be encouraging and insightful.`;
-      
-      const userPrompt = `Session Summary:
-- Duration: ${sessionData.duration} minutes
-- Questions asked: ${sessionData.questionCount}
-- Mode: ${sessionData.mode}
-- Student explained: "${sessionData.transcript}"
+      try {
+        const prompt = `Session wrap-up: Student spent ${sessionData.duration} minutes explaining "${sessionData.transcript}". 
 
-Provide:
-1. A brief, encouraging summary of what they covered (1-2 sentences)
-2. One key insight or strength you noticed
-3. One thoughtful question for further exploration
+Provide: 1) Brief encouraging summary 2) One insight about their understanding 3) One question for further exploration. 
 
-Keep the entire response under 60 words, conversational and encouraging.`;
+Keep under 50 words, be conversational and encouraging.`;
 
-      return await queryGemini(systemPrompt, userPrompt);
+        return await queryGemini(prompt);
+      } catch (error) {
+        console.error("Session summary error:", error);
+        return `Great session! You covered some interesting points in ${sessionData.duration} minutes. What aspect would you like to explore further next time?`;
+      }
     }
 
     // --- ENHANCED API COMMUNICATION ---
-    async function queryGemini(systemPrompt, userPrompt) {
-      const payload = {
-        systemInstruction: { parts: [{ text: systemPrompt }] },
-        contents: [{ parts: [{ text: userPrompt }] }],
-        generationConfig: {
-          temperature: 0.7,
-          topP: 0.8,
-          topK: 40,
-          maxOutputTokens: 150
-        }
-      };
+    async function queryGemini(prompt) {
+      try {
+        const payload = {
+          contents: [{ 
+            parts: [{ text: prompt }] 
+          }],
+          generationConfig: {
+            temperature: 0.8,
+            topP: 0.9,
+            topK: 40,
+            maxOutputTokens: 100,
+            stopSequences: []
+          },
+          safetySettings: [
+            {
+              category: "HARM_CATEGORY_HARASSMENT",
+              threshold: "BLOCK_MEDIUM_AND_ABOVE"
+            },
+            {
+              category: "HARM_CATEGORY_HATE_SPEECH", 
+              threshold: "BLOCK_MEDIUM_AND_ABOVE"
+            },
+            {
+              category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+              threshold: "BLOCK_MEDIUM_AND_ABOVE"
+            },
+            {
+              category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+              threshold: "BLOCK_MEDIUM_AND_ABOVE"
+            }
+          ]
+        };
 
-      const response = await fetch(API_URL, { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify(payload) 
-      });
-      
-      if (!response.ok) {
-        const errorBody = await response.json().catch(() => ({}));
-        console.error("API Error Response:", errorBody);
-        throw new Error(`API failed with status ${response.status}: ${errorBody.error?.message || 'Unknown error'}`);
+        const response = await fetch(API_URL, { 
+          method: 'POST', 
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }, 
+          body: JSON.stringify(payload) 
+        });
+        
+        if (!response.ok) {
+          let errorMessage = `HTTP ${response.status}`;
+          try {
+            const errorBody = await response.json();
+            errorMessage = errorBody.error?.message || errorMessage;
+          } catch (e) {
+            // If we can't parse error JSON, use status text
+            errorMessage = response.statusText || errorMessage;
+          }
+          throw new Error(errorMessage);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.candidates || data.candidates.length === 0) {
+          throw new Error("No response candidates received");
+        }
+        
+        const candidate = data.candidates[0];
+        if (candidate.finishReason === 'SAFETY') {
+          throw new Error("Response blocked by safety filters");
+        }
+        
+        const text = candidate.content?.parts?.[0]?.text;
+        if (!text || text.trim().length === 0) {
+          throw new Error("Empty response received");
+        }
+        
+        return text.trim();
+      } catch (error) {
+        console.error("API Error:", error);
+        throw error;
       }
-      
-      const data = await response.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      
-      if (!text) {
-        throw new Error("No response content received from API");
-      }
-      
-      return text.trim();
     }
 
     // --- ENHANCED UI FUNCTIONS ---
@@ -961,20 +1024,15 @@ Keep the entire response under 60 words, conversational and encouraging.`;
       document.body.className = '';
       elements.thinkingIndicator.style.display = 'none';
       
-      // Idle mouth
-      Object.assign(elements.mouth.style, { 
-        width: '16px', 
-        height: '3px', 
-        y: '48px' 
-      });
+      // Hide face for idle state
+      elements.face.style.opacity = '0';
       
-      // Relaxed eyebrows
-      Object.assign(elements.leftBrow.style, { y: '26px' }); 
-      Object.assign(elements.rightBrow.style, { y: '26px' });
+      // Reset orb to normal glow
+      elements.outerRing.style.opacity = '0.4';
+      elements.innerCore.style.opacity = '0.8';
       
-      // Normal eyes
-      elements.leftEye.setAttribute('ry', '3');
-      elements.rightEye.setAttribute('ry', '3');
+      // Slow particle animation
+      elements.particles.style.animationDuration = '8s';
     }
 
     function setThinkingState() {
@@ -982,45 +1040,51 @@ Keep the entire response under 60 words, conversational and encouraging.`;
       elements.thinkingIndicator.style.display = 'block';
       elements.listeningIndicator.style.display = 'none';
       
-      // Concentrated mouth
-      Object.assign(elements.mouth.style, { 
-        width: '12px', 
-        height: '2px', 
-        y: '49px' 
-      });
+      // Show concentrated face
+      elements.face.style.opacity = '0.6';
+      elements.mouthPath.setAttribute('d', 'M 47 55 Q 50 57 53 55');
       
-      // Furrowed brows
-      Object.assign(elements.leftBrow.style, { y: '25px' }); 
-      Object.assign(elements.rightBrow.style, { y: '25px' });
+      // Intensify thinking glow
+      elements.outerRing.style.opacity = '0.7';
+      elements.innerCore.style.opacity = '1';
+      
+      // Faster particles for thinking
+      elements.particles.style.animationDuration = '4s';
       
       // Focused eyes
-      elements.leftEye.setAttribute('ry', '2');
-      elements.rightEye.setAttribute('ry', '2');
+      elements.leftEyeDot.setAttribute('r', '2');
+      elements.rightEyeDot.setAttribute('r', '2');
     }
 
     function setSpeakingState() {
       document.body.className = 'speaking';
       elements.thinkingIndicator.style.display = 'none';
       
-      // Animated speaking mouth
-      animateSpeakingMouth();
+      // Show expressive face
+      elements.face.style.opacity = '0.9';
       
-      // Raised eyebrows
-      Object.assign(elements.leftBrow.style, { y: '27px' }); 
-      Object.assign(elements.rightBrow.style, { y: '27px' });
+      // Animate speaking
+      animateSpeakingOrb();
       
-      // Engaged eyes
-      elements.leftEye.setAttribute('ry', '3');
-      elements.rightEye.setAttribute('ry', '3');
+      // Bright speaking glow
+      elements.outerRing.style.opacity = '0.8';
+      elements.innerCore.style.opacity = '1';
+      
+      // Very active particles
+      elements.particles.style.animationDuration = '2s';
+      
+      // Wide eyes for speaking
+      elements.leftEyeDot.setAttribute('r', '3');
+      elements.rightEyeDot.setAttribute('r', '3');
     }
 
-    function animateSpeakingMouth() {
+    function animateSpeakingOrb() {
       let mouthState = 0;
       const mouthStates = [
-        { width: '18px', height: '4px', y: '47px' },
-        { width: '14px', height: '6px', y: '46px' },
-        { width: '20px', height: '3px', y: '48px' },
-        { width: '16px', height: '5px', y: '47px' }
+        'M 45 55 Q 50 62 55 55', // Open
+        'M 46 55 Q 50 58 54 55', // Semi-open
+        'M 47 55 Q 50 60 53 55', // Medium
+        'M 45 55 Q 50 57 55 55'  // Closed
       ];
       
       const mouthInterval = setInterval(() => {
@@ -1029,23 +1093,23 @@ Keep the entire response under 60 words, conversational and encouraging.`;
           return;
         }
         
-        const currentState = mouthStates[mouthState % mouthStates.length];
-        Object.assign(elements.mouth.style, currentState);
+        elements.mouthPath.setAttribute('d', mouthStates[mouthState % mouthStates.length]);
         mouthState++;
-      }, 200);
+      }, 150);
     }
 
     function startBlinking() {
       state.blinkInterval = setInterval(() => {
-        if (!state.isSpeaking && state.listening) {
-          elements.leftEye.setAttribute('ry', '0.5');
-          elements.rightEye.setAttribute('ry', '0.5');
+        if (!state.isSpeaking && state.listening && elements.face.style.opacity !== '0') {
+          // Blink animation for orb
+          elements.leftEyeDot.style.opacity = '0.2';
+          elements.rightEyeDot.style.opacity = '0.2';
           setTimeout(() => {
-            elements.leftEye.setAttribute('ry', '3');
-            elements.rightEye.setAttribute('ry', '3');
+            elements.leftEyeDot.style.opacity = '0.9';
+            elements.rightEyeDot.style.opacity = '0.9';
           }, 120);
         }
-      }, 3000 + Math.random() * 2000); // Random blinking
+      }, 3000 + Math.random() * 2000);
     }
 
     function stopBlinking() {
@@ -1128,40 +1192,42 @@ Keep the entire response under 60 words, conversational and encouraging.`;
       const source = audioCtx.createMediaStreamSource(stream);
       source.connect(analyser);
       
-      analyser.fftSize = 512;
-      analyser.smoothingTimeConstant = 0.8;
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.7;
       
       const dataArray = new Uint8Array(analyser.frequencyBinCount);
-      const frequencyData = new Uint8Array(analyser.frequencyBinCount);
       
       function updateVisualization() {
         if (state.listening && !state.isSpeaking) {
-          analyser.getByteTimeDomainData(dataArray);
-          analyser.getByteFrequencyData(frequencyData);
+          analyser.getByteFrequencyData(dataArray);
           
-          // Volume-based glow
+          // Calculate volume for orb reactivity
           let volume = 0;
           for (let i = 0; i < dataArray.length; i++) {
-            volume += Math.abs(dataArray[i] - 128);
+            volume += dataArray[i];
           }
-          volume = volume / dataArray.length;
+          volume = volume / dataArray.length / 255; // Normalize to 0-1
           
-          // Frequency-based color shift
-          let highFreq = 0;
-          for (let i = Math.floor(frequencyData.length * 0.7); i < frequencyData.length; i++) {
-            highFreq += frequencyData[i];
+          // Update orb based on audio input
+          const baseGlow = 15;
+          const glowIntensity = baseGlow + (volume * 20);
+          const pulseScale = 1 + (volume * 0.1);
+          
+          elements.character.style.filter = `drop-shadow(0 0 ${glowIntensity}px var(--glow-color))`;
+          elements.character.style.transform = `scale(${pulseScale})`;
+          
+          // Make particles more active with audio
+          elements.particles.style.animationDuration = `${Math.max(2, 6 - volume * 4)}s`;
+          
+          // Show face when there's significant audio input
+          if (volume > 0.1) {
+            elements.face.style.opacity = Math.min(0.8, volume * 2);
+          } else {
+            elements.face.style.opacity = '0';
           }
-          highFreq = highFreq / (frequencyData.length * 0.3);
-          
-          const glowIntensity = 20 + (volume * 0.8);
-          const colorShift = Math.min(50, highFreq * 0.3);
-          
-          elements.character.style.filter = `
-            drop-shadow(0 0 ${glowIntensity}px hsl(${280 + colorShift}, 70%, 60%))
-            drop-shadow(0 0 ${glowIntensity * 0.5}px var(--glow-color))
-          `;
         } else if (!state.isSpeaking) {
-          elements.character.style.filter = `drop-shadow(0 0 25px var(--glow-color))`;
+          elements.character.style.filter = `drop-shadow(0 0 15px var(--glow-color))`;
+          elements.character.style.transform = 'scale(1)';
         }
         
         requestAnimationFrame(updateVisualization);
