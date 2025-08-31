@@ -1,0 +1,2199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Voice Tutor - Modern Learning Assistant</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    :root {
+      /* Modern Color Palette */
+      --primary: #6366f1;
+      --primary-light: #8b5cf6;
+      --primary-dark: #4f46e5;
+      --secondary: #06b6d4;
+      --accent: #f59e0b;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      
+      /* Neutral Colors */
+      --gray-50: #f8fafc;
+      --gray-100: #f1f5f9;
+      --gray-200: #e2e8f0;
+      --gray-300: #cbd5e1;
+      --gray-400: #94a3b8;
+      --gray-500: #64748b;
+      --gray-600: #475569;
+      --gray-700: #334155;
+      --gray-800: #1e293b;
+      --gray-900: #0f172a;
+      
+      /* Background & Surface */
+      --bg-primary: #0a0f1c;
+      --bg-secondary: #1a1f2e;
+      --surface: rgba(255, 255, 255, 0.05);
+      --surface-hover: rgba(255, 255, 255, 0.1);
+      --border: rgba(255, 255, 255, 0.1);
+      --border-hover: rgba(255, 255, 255, 0.2);
+      
+      /* Text Colors */
+      --text-primary: #f8fafc;
+      --text-secondary: #cbd5e1;
+      --text-muted: #94a3b8;
+      
+      /* Glassmorphism */
+      --glass-bg: rgba(255, 255, 255, 0.08);
+      --glass-border: rgba(255, 255, 255, 0.12);
+      --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      
+      /* Animations */
+      --transition-fast: 0.15s ease;
+      --transition-normal: 0.3s ease;
+      --transition-slow: 0.5s ease;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+      color: var(--text-primary);
+      overflow-x: hidden;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    /* Animated Background */
+    .background-gradient {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 40% 60%, rgba(6, 182, 212, 0.05) 0%, transparent 50%);
+      animation: backgroundShift 20s ease-in-out infinite;
+      z-index: -2;
+    }
+
+    @keyframes backgroundShift {
+      0%, 100% { opacity: 1; transform: scale(1) rotate(0deg); }
+      50% { opacity: 0.8; transform: scale(1.1) rotate(1deg); }
+    }
+
+    /* Floating Particles */
+    .particles-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .particle {
+      position: absolute;
+      width: 3px;
+      height: 3px;
+      background: var(--primary-light);
+      border-radius: 50%;
+      opacity: 0.6;
+      animation: float-particle 15s linear infinite;
+    }
+
+    @keyframes float-particle {
+      0% {
+        transform: translateY(100vh) translateX(0) scale(0);
+        opacity: 0;
+      }
+      10% {
+        opacity: 0.6;
+        transform: scale(1);
+      }
+      90% {
+        opacity: 0.6;
+      }
+      100% {
+        transform: translateY(-100px) translateX(100px) scale(0);
+        opacity: 0;
+      }
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      padding: 2rem 1rem;
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--glass-border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header h1 {
+      font-size: clamp(1.8rem, 4vw, 2.5rem);
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.5rem;
+    }
+
+    .header p {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      font-weight: 400;
+    }
+
+    /* Main Container */
+    .main-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+      gap: 2rem;
+      width: 100%;
+    }
+
+    /* Character Section */
+    .character-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .character-container {
+      position: relative;
+      width: 120px;
+      height: 120px;
+    }
+
+    .character {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      position: relative;
+      overflow: hidden;
+      transition: all var(--transition-normal);
+      box-shadow: 
+        0 0 40px rgba(99, 102, 241, 0.3),
+        0 0 80px rgba(99, 102, 241, 0.1),
+        inset 0 0 40px rgba(255, 255, 255, 0.1);
+    }
+
+    .character::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: conic-gradient(from 0deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+      animation: rotate 4s linear infinite;
+      opacity: 0;
+      transition: opacity var(--transition-normal);
+    }
+
+    .character.active::before {
+      opacity: 1;
+    }
+
+    @keyframes rotate {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .character-emoji {
+      font-size: 3rem;
+      filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
+      animation: breathe 3s ease-in-out infinite;
+    }
+
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    .character.listening {
+      animation: pulse-listening 1.5s ease-in-out infinite;
+      box-shadow: 
+        0 0 60px rgba(16, 185, 129, 0.4),
+        0 0 120px rgba(16, 185, 129, 0.2),
+        inset 0 0 40px rgba(255, 255, 255, 0.1);
+    }
+
+    .character.thinking {
+      animation: pulse-thinking 1s ease-in-out infinite;
+      box-shadow: 
+        0 0 60px rgba(245, 158, 11, 0.4),
+        0 0 120px rgba(245, 158, 11, 0.2),
+        inset 0 0 40px rgba(255, 255, 255, 0.1);
+    }
+
+    .character.speaking {
+      animation: pulse-speaking 0.8s ease-in-out infinite;
+      box-shadow: 
+        0 0 60px rgba(99, 102, 241, 0.5),
+        0 0 120px rgba(99, 102, 241, 0.3),
+        inset 0 0 40px rgba(255, 255, 255, 0.1);
+    }
+
+    @keyframes pulse-listening {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+    }
+
+    @keyframes pulse-thinking {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.06); }
+    }
+
+    @keyframes pulse-speaking {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    /* Status Indicators */
+    .status-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      min-height: 3rem;
+    }
+
+    .status-indicator {
+      display: none;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 2rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all var(--transition-normal);
+      box-shadow: var(--glass-shadow);
+    }
+
+    .status-indicator.active {
+      display: flex;
+    }
+
+    .status-indicator.listening {
+      color: var(--success);
+      border-color: rgba(16, 185, 129, 0.3);
+      background: rgba(16, 185, 129, 0.1);
+    }
+
+    .status-indicator.waiting {
+      color: var(--warning);
+      border-color: rgba(245, 158, 11, 0.3);
+      background: rgba(245, 158, 11, 0.1);
+    }
+
+    .status-indicator.thinking {
+      color: var(--accent);
+      border-color: rgba(245, 158, 11, 0.3);
+      background: rgba(245, 158, 11, 0.1);
+    }
+
+    .status-indicator.speaking {
+      color: var(--primary);
+      border-color: rgba(99, 102, 241, 0.3);
+      background: rgba(99, 102, 241, 0.1);
+    }
+
+    /* Control Panel */
+    .control-panel {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      max-width: 900px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .main-controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .primary-button {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      border: none;
+      color: white;
+      padding: 1rem 2.5rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      border-radius: 3rem;
+      cursor: pointer;
+      transition: all var(--transition-normal);
+      box-shadow: 
+        0 4px 20px rgba(99, 102, 241, 0.3),
+        0 0 0 0 rgba(99, 102, 241, 0.5);
+      position: relative;
+      overflow: hidden;
+      min-width: 200px;
+    }
+
+    .primary-button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left var(--transition-slow);
+    }
+
+    .primary-button:hover::before {
+      left: 100%;
+    }
+
+    .primary-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 
+        0 8px 30px rgba(99, 102, 241, 0.4),
+        0 0 0 0 rgba(99, 102, 241, 0.5);
+    }
+
+    .primary-button:active {
+      transform: translateY(0);
+    }
+
+    .primary-button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .primary-button.recording {
+      background: linear-gradient(135deg, var(--error) 0%, #f97316 100%);
+      animation: pulse-record 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-record {
+      0%, 100% { box-shadow: 0 4px 20px rgba(239, 68, 68, 0.3); }
+      50% { box-shadow: 0 4px 30px rgba(239, 68, 68, 0.5); }
+    }
+
+    /* Settings Panel */
+    .settings-panel {
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 1.5rem;
+      padding: 2rem;
+      box-shadow: var(--glass-shadow);
+    }
+
+    .settings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .setting-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .setting-label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .setting-input {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 0.875rem 1rem;
+      color: var(--text-primary);
+      font-size: 1rem;
+      transition: all var(--transition-normal);
+      font-family: inherit;
+    }
+
+    .setting-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .setting-input:hover {
+      border-color: var(--border-hover);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    /* File Upload Area */
+    .file-upload-section {
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      border: 2px dashed var(--border);
+      border-radius: 1.5rem;
+      padding: 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--transition-normal);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .file-upload-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.1), transparent);
+      transition: left var(--transition-slow);
+    }
+
+    .file-upload-section:hover::before {
+      left: 100%;
+    }
+
+    .file-upload-section:hover {
+      border-color: var(--primary);
+      background: rgba(99, 102, 241, 0.05);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(99, 102, 241, 0.2);
+    }
+
+    .file-upload-section.drag-over {
+      border-color: var(--success);
+      background: rgba(16, 185, 129, 0.1);
+      transform: scale(1.02);
+    }
+
+    .file-upload-section.has-file {
+      border-color: var(--success);
+      border-style: solid;
+      background: rgba(16, 185, 129, 0.05);
+    }
+
+    .upload-icon {
+      font-size: 3rem;
+      color: var(--primary);
+      margin-bottom: 1rem;
+      transition: all var(--transition-normal);
+    }
+
+    .file-upload-section:hover .upload-icon {
+      transform: scale(1.1);
+      color: var(--primary-light);
+    }
+
+    .upload-text {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .upload-subtext {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .file-info {
+      display: none;
+      margin-top: 1rem;
+      padding: 1rem;
+      background: rgba(16, 185, 129, 0.1);
+      border-radius: 0.75rem;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .remove-file-btn {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      background: var(--error);
+      border: none;
+      color: white;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      transition: all var(--transition-fast);
+      font-size: 0.8rem;
+    }
+
+    .remove-file-btn:hover {
+      background: #dc2626;
+      transform: scale(1.1);
+    }
+
+    /* Content Area */
+    .content-area {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (min-width: 1024px) {
+      .content-area {
+        grid-template-columns: 2fr 1fr;
+      }
+    }
+
+    .conversation-panel,
+    .analysis-panel {
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 1.5rem;
+      padding: 1.5rem;
+      box-shadow: var(--glass-shadow);
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .panel-icon {
+      color: var(--primary);
+      font-size: 1.2rem;
+    }
+
+    /* Conversation Display */
+    .conversation-content {
+      height: 400px;
+      overflow-y: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      padding-right: 0.5rem;
+    }
+
+    .conversation-content::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .conversation-content::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 3px;
+    }
+
+    .conversation-content::-webkit-scrollbar-thumb {
+      background: var(--primary);
+      border-radius: 3px;
+    }
+
+    .message {
+      margin-bottom: 1rem;
+      padding: 0.75rem 1rem;
+      border-radius: 0.75rem;
+      position: relative;
+      animation: slideInMessage 0.3s ease-out;
+    }
+
+    @keyframes slideInMessage {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .message.user {
+      background: rgba(16, 185, 129, 0.1);
+      border-left: 3px solid var(--success);
+      margin-left: 1rem;
+    }
+
+    .message.assistant {
+      background: rgba(99, 102, 241, 0.1);
+      border-left: 3px solid var(--primary);
+      margin-right: 1rem;
+    }
+
+    .message.system {
+      background: rgba(245, 158, 11, 0.1);
+      border-left: 3px solid var(--warning);
+      font-style: italic;
+      text-align: center;
+    }
+
+    .message.error {
+      background: rgba(239, 68, 68, 0.1);
+      border-left: 3px solid var(--error);
+    }
+
+    .message-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      opacity: 0.8;
+    }
+
+    /* Analysis Panel */
+    .analysis-content {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      height: 400px;
+    }
+
+    .quick-stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1rem;
+      text-align: center;
+      transition: all var(--transition-normal);
+    }
+
+    .stat-card:hover {
+      background: rgba(255, 255, 255, 0.05);
+      transform: translateY(-2px);
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .progress-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--primary-light));
+      width: 0%;
+      transition: width var(--transition-normal);
+      border-radius: 4px;
+      position: relative;
+    }
+
+    .progress-fill::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      animation: shimmer 2s ease-in-out infinite;
+    }
+
+    @keyframes shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    .quality-rating {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 0.75rem;
+      border: 1px solid var(--border);
+    }
+
+    .quality-stars {
+      display: flex;
+      gap: 0.25rem;
+    }
+
+    .star {
+      color: var(--gray-600);
+      font-size: 1.2rem;
+      transition: all var(--transition-fast);
+    }
+
+    .star.active {
+      color: var(--warning);
+      text-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+    }
+
+    .current-analysis {
+      flex: 1;
+      padding: 1rem;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 0.75rem;
+      border: 1px solid var(--border);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      overflow-y: auto;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .header {
+        padding: 1.5rem 1rem;
+      }
+
+      .main-container {
+        padding: 1rem;
+        gap: 1.5rem;
+      }
+
+      .character-container {
+        width: 100px;
+        height: 100px;
+      }
+
+      .character-emoji {
+        font-size: 2.5rem;
+      }
+
+      .settings-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .quick-stats {
+        grid-template-columns: 1fr;
+      }
+
+      .conversation-content,
+      .analysis-content {
+        height: 300px;
+      }
+
+      .status-container {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .primary-button {
+        padding: 0.875rem 2rem;
+        font-size: 1rem;
+        min-width: 180px;
+      }
+
+      .settings-panel {
+        padding: 1.5rem;
+      }
+
+      .conversation-content,
+      .analysis-content {
+        height: 250px;
+      }
+    }
+
+    /* Utility Classes */
+    .hidden {
+      display: none !important;
+    }
+
+    .loading {
+      position: relative;
+    }
+
+    .loading::after {
+      content: '';
+      position: absolute;
+      right: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      border: 2px solid transparent;
+      border-top: 2px solid var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: translateY(-50%) rotate(0deg); }
+      100% { transform: translateY(-50%) rotate(360deg); }
+    }
+
+    /* Enhanced Animations */
+    .fade-in {
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .slide-up {
+      animation: slideUp 0.3s ease-out;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Audio Visualization */
+    .audio-visualizer {
+      display: none;
+      justify-content: center;
+      align-items: center;
+      gap: 3px;
+      margin-top: 1rem;
+    }
+
+    .audio-visualizer.active {
+      display: flex;
+    }
+
+    .audio-bar {
+      width: 4px;
+      height: 20px;
+      background: var(--primary);
+      border-radius: 2px;
+      animation: audioWave 1.5s ease-in-out infinite;
+    }
+
+    .audio-bar:nth-child(2) { animation-delay: 0.1s; }
+    .audio-bar:nth-child(3) { animation-delay: 0.2s; }
+    .audio-bar:nth-child(4) { animation-delay: 0.3s; }
+    .audio-bar:nth-child(5) { animation-delay: 0.4s; }
+
+    @keyframes audioWave {
+      0%, 100% { height: 20px; }
+      50% { height: 40px; }
+    }
+
+    /* Conversation History Toggle */
+    .history-toggle {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 0.5rem 1rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: all var(--transition-fast);
+      margin-bottom: 1rem;
+    }
+
+    .history-toggle:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-primary);
+    }
+
+    .conversation-history {
+      max-height: 200px;
+      overflow-y: auto;
+      border-top: 1px solid var(--border);
+      padding-top: 1rem;
+      margin-top: 1rem;
+      display: none;
+    }
+
+    .conversation-history.visible {
+      display: block;
+    }
+
+    .history-item {
+      padding: 0.5rem;
+      margin-bottom: 0.5rem;
+      border-radius: 0.5rem;
+      background: rgba(255, 255, 255, 0.02);
+      font-size: 0.8rem;
+      line-height: 1.4;
+    }
+
+    /* Enhanced Status Messages */
+    .status-message {
+      position: fixed;
+      top: 2rem;
+      right: 2rem;
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 0.75rem;
+      padding: 1rem 1.5rem;
+      color: var(--text-primary);
+      font-weight: 500;
+      box-shadow: var(--glass-shadow);
+      transform: translateX(100%);
+      transition: transform var(--transition-normal);
+      z-index: 1000;
+      max-width: 300px;
+    }
+
+    .status-message.visible {
+      transform: translateX(0);
+    }
+
+    .status-message.success {
+      border-color: rgba(16, 185, 129, 0.3);
+      background: rgba(16, 185, 129, 0.1);
+    }
+
+    .status-message.error {
+      border-color: rgba(239, 68, 68, 0.3);
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    .status-message.warning {
+      border-color: rgba(245, 158, 11, 0.3);
+      background: rgba(245, 158, 11, 0.1);
+    }
+  </style>
+</head>
+<body>
+  <div class="background-gradient"></div>
+  <div class="particles-container" id="particles-container"></div>
+
+  <!-- Header -->
+  <header class="header">
+    <h1><i class="fas fa-brain"></i> AI Voice Tutor</h1>
+    <p>Interactive Learning with Advanced Voice Recognition</p>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-container">
+    <!-- File Upload Section -->
+    <section class="file-upload-section" id="file-upload-area">
+      <div class="upload-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+      <div class="upload-text">Upload Your Study Material</div>
+      <div class="upload-subtext">
+        Drag & drop PDF, TXT, or DOCX files to get personalized questions<br>
+        <small>Supports files up to 10MB • AI will reference your content</small>
+      </div>
+      <button class="remove-file-btn" id="remove-file-btn">
+        <i class="fas fa-times"></i>
+      </button>
+      <div class="file-info" id="file-info"></div>
+    </section>
+
+    <input type="file" id="hidden-file-input" accept=".pdf,.txt,.docx,.doc" class="hidden" />
+
+    <!-- Character Section -->
+    <section class="character-section">
+      <div class="character-container">
+        <div class="character" id="character">
+          <div class="character-emoji">🤖</div>
+        </div>
+      </div>
+
+      <div class="audio-visualizer" id="audio-visualizer">
+        <div class="audio-bar"></div>
+        <div class="audio-bar"></div>
+        <div class="audio-bar"></div>
+        <div class="audio-bar"></div>
+        <div class="audio-bar"></div>
+      </div>
+
+      <div class="status-container">
+        <div class="status-indicator listening" id="listening-indicator">
+          <i class="fas fa-microphone"></i>
+          <span>Listening...</span>
+        </div>
+        <div class="status-indicator waiting" id="waiting-indicator">
+          <i class="fas fa-clock"></i>
+          <span>Waiting for pause...</span>
+        </div>
+        <div class="status-indicator thinking" id="thinking-indicator">
+          <i class="fas fa-brain"></i>
+          <span>Processing...</span>
+        </div>
+        <div class="status-indicator speaking" id="speaking-indicator">
+          <i class="fas fa-volume-up"></i>
+          <span>Speaking...</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Control Panel -->
+    <section class="control-panel">
+      <div class="main-controls">
+        <button class="primary-button" id="toggle-btn">
+          <i class="fas fa-play"></i>
+          Start Learning Session
+        </button>
+      </div>
+
+      <div class="settings-panel">
+        <div class="panel-header">
+          <i class="fas fa-cog panel-icon"></i>
+          <h3 class="panel-title">Learning Settings</h3>
+        </div>
+        <div class="settings-grid">
+          <div class="setting-group">
+            <label class="setting-label" for="mode-select">Teaching Mode</label>
+            <select class="setting-input" id="mode-select">
+              <option value="interactive">Interactive Q&A</option>
+              <option value="askBetween">Question Each Point</option>
+              <option value="askEnd">Question At End</option>
+              <option value="socratic">Socratic Method</option>
+              <option value="summary">Summary & Review</option>
+            </select>
+          </div>
+          <div class="setting-group">
+            <label class="setting-label" for="accent-select">Voice Accent</label>
+            <select class="setting-input" id="accent-select"></select>
+          </div>
+          <div class="setting-group">
+            <label class="setting-label" for="difficulty-select">Difficulty Level</label>
+            <select class="setting-input" id="difficulty-select">
+              <option value="beginner">Beginner</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="advanced">Advanced</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Content Area -->
+    <section class="content-area">
+      <!-- Conversation Panel -->
+      <div class="conversation-panel">
+        <div class="panel-header">
+          <i class="fas fa-comments panel-icon"></i>
+          <h3 class="panel-title">Conversation</h3>
+          <div class="history-toggle" id="history-toggle">
+            <i class="fas fa-history"></i> Show History
+          </div>
+        </div>
+        <div class="conversation-content" id="conversation-content">
+          <div class="message system">
+            <div class="message-header">
+              <i class="fas fa-robot"></i>
+              <span>AI Tutor</span>
+            </div>
+            Welcome to your AI Voice Tutor! Upload study material or start explaining any topic. I'll use advanced questioning techniques to help deepen your understanding.
+          </div>
+        </div>
+        <div class="conversation-history" id="conversation-history"></div>
+      </div>
+
+      <!-- Analysis Panel -->
+      <div class="analysis-panel">
+        <div class="panel-header">
+          <i class="fas fa-chart-line panel-icon"></i>
+          <h3 class="panel-title">Learning Analytics</h3>
+        </div>
+        <div class="analysis-content">
+          <div class="quick-stats">
+            <div class="stat-card">
+              <div class="stat-value" id="question-count">0</div>
+              <div class="stat-label">Questions</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="session-time">0m</div>
+              <div class="stat-label">Session Time</div>
+            </div>
+          </div>
+
+          <div class="progress-section">
+            <div class="setting-label">Learning Progress</div>
+            <div class="progress-bar">
+              <div class="progress-fill" id="progress-fill"></div>
+            </div>
+          </div>
+
+          <div class="quality-rating">
+            <span class="setting-label">Engagement Quality</span>
+            <div class="quality-stars" id="quality-stars">
+              <span class="star"><i class="fas fa-star"></i></span>
+              <span class="star"><i class="fas fa-star"></i></span>
+              <span class="star"><i class="fas fa-star"></i></span>
+              <span class="star"><i class="fas fa-star"></i></span>
+              <span class="star"><i class="fas fa-star"></i></span>
+            </div>
+          </div>
+
+          <div class="current-analysis" id="current-analysis">
+            <div style="opacity: 0.7; font-style: italic;">
+              🧠 Ready to analyze your learning...
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Status Messages -->
+  <div class="status-message" id="status-message"></div>
+
+  <script>
+    // Configure PDF.js worker
+    if (typeof pdfjsLib !== 'undefined') {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+    }
+
+    // --- ENHANCED CONSTANTS ---
+    const API_KEY = "";
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
+    const API_COOLDOWN_MS = 2000;
+
+    // --- DOM REFERENCES ---
+    const elements = {
+      character: document.getElementById('character'),
+      toggleBtn: document.getElementById('toggle-btn'),
+      listeningIndicator: document.getElementById('listening-indicator'),
+      waitingIndicator: document.getElementById('waiting-indicator'),
+      thinkingIndicator: document.getElementById('thinking-indicator'),
+      speakingIndicator: document.getElementById('speaking-indicator'),
+      conversationContent: document.getElementById('conversation-content'),
+      modeSelect: document.getElementById('mode-select'),
+      accentSelect: document.getElementById('accent-select'),
+      difficultySelect: document.getElementById('difficulty-select'),
+      currentAnalysis: document.getElementById('current-analysis'),
+      progressFill: document.getElementById('progress-fill'),
+      qualityStars: document.getElementById('quality-stars'),
+      questionCount: document.getElementById('question-count'),
+      sessionTime: document.getElementById('session-time'),
+      fileUploadArea: document.getElementById('file-upload-area'),
+      hiddenFileInput: document.getElementById('hidden-file-input'),
+      fileInfo: document.getElementById('file-info'),
+      removeFileBtn: document.getElementById('remove-file-btn'),
+      statusMessage: document.getElementById('status-message'),
+      historyToggle: document.getElementById('history-toggle'),
+      conversationHistory: document.getElementById('conversation-history'),
+      audioVisualizer: document.getElementById('audio-visualizer'),
+      particlesContainer: document.getElementById('particles-container')
+    };
+    
+    // --- ENHANCED STATE ---
+    let state = {
+      listening: false,
+      recognition: null,
+      voice: null,
+      transcriptLog: [],
+      conversationHistory: [],
+      isSpeaking: false,
+      apiOnCooldown: false,
+      lastProcessedTranscript: "",
+      currentTopic: "",
+      questionCount: 0,
+      conversationQuality: 0,
+      sessionStartTime: null,
+      lastSpeechTime: null,
+      pauseTimer: null,
+      currentTranscriptBuffer: "",
+      isProcessingPause: false,
+      silenceThreshold: 2500,
+      minimumSpeechLength: 10,
+      textbookContent: "",
+      fileName: "",
+      hasTextbook: false,
+      sessionTimer: null,
+      audioContext: null,
+      analyser: null,
+      microphone: null,
+      historyVisible: false
+    };
+
+    // --- BROWSER FEATURE DETECTION ---
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      showStatusMessage("Voice recognition not supported. Please use Chrome, Edge, or Safari.", 'error');
+      elements.toggleBtn.disabled = true;
+    }
+
+    // --- INITIALIZATION ---
+    document.addEventListener('DOMContentLoaded', () => {
+      initializeVoices();
+      initializeParticles();
+      initializeEventListeners();
+      initializeAudioVisualization();
+      
+      // Show welcome message
+      showStatusMessage("Welcome! Upload study material or start explaining any topic.", 'success');
+    });
+
+    // --- VOICE SYSTEM ---
+    function initializeVoices() {
+      loadVoices();
+      if (speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = loadVoices;
+      }
+    }
+
+    function loadVoices() {
+      const voices = speechSynthesis.getVoices();
+      if (voices.length === 0) return; 
+      
+      const currentAccent = elements.accentSelect.value;
+      elements.accentSelect.innerHTML = '';
+      
+      const englishVoices = voices
+        .filter(v => v.lang.startsWith('en'))
+        .sort((a, b) => {
+          if (a.name.includes('Google') && !b.name.includes('Google')) return -1;
+          if (!a.name.includes('Google') && b.name.includes('Google')) return 1;
+          return a.name.localeCompare(b.name);
+        });
+
+      englishVoices.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v.name;
+        opt.textContent = v.name.replace('Google', '').replace('Microsoft', '').trim() + ` (${v.lang})`;
+        elements.accentSelect.appendChild(opt);
+      });
+      
+      state.voice = voices.find(v => v.name === currentAccent) || 
+                   voices.find(v => v.name.includes('Google') && v.lang === 'en-US') ||
+                   voices.find(v => v.lang === 'en-US') || 
+                   voices.find(v => v.lang.startsWith('en')) || 
+                   voices[0];
+      
+      if (state.voice) elements.accentSelect.value = state.voice.name;
+    }
+
+    // --- EVENT LISTENERS ---
+    function initializeEventListeners() {
+      elements.toggleBtn.addEventListener('click', () => state.listening ? stopListening() : startListening());
+      elements.accentSelect.addEventListener('change', () => {
+        state.voice = speechSynthesis.getVoices().find(v => v.name === elements.accentSelect.value);
+      });
+
+      // File upload listeners
+      elements.fileUploadArea.addEventListener('click', () => elements.hiddenFileInput.click());
+      elements.hiddenFileInput.addEventListener('change', handleFileSelect);
+      elements.removeFileBtn.addEventListener('click', removeFile);
+      elements.fileUploadArea.addEventListener('dragover', handleDragOver);
+      elements.fileUploadArea.addEventListener('dragleave', handleDragLeave);
+      elements.fileUploadArea.addEventListener('drop', handleFileDrop);
+
+      // History toggle
+      elements.historyToggle.addEventListener('click', toggleConversationHistory);
+
+      // Keyboard shortcuts
+      document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && e.target.tagName !== 'SELECT' && e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT') {
+          e.preventDefault();
+          elements.toggleBtn.click();
+        }
+        if (e.key === 'Escape' && state.listening) {
+          stopListening();
+        }
+      });
+
+      // Window events
+      window.addEventListener('beforeunload', cleanup);
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+    }
+
+    // --- AUDIO VISUALIZATION ---
+    async function initializeAudioVisualization() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        state.analyser = state.audioContext.createAnalyser();
+        state.microphone = state.audioContext.createMediaStreamSource(stream);
+        
+        state.microphone.connect(state.analyser);
+        state.analyser.fftSize = 256;
+        state.analyser.smoothingTimeConstant = 0.8;
+        
+        startAudioVisualization();
+      } catch (error) {
+        console.error("Microphone access denied:", error);
+        showStatusMessage("Microphone access required for voice features. Please allow access and refresh.", 'error');
+      }
+    }
+
+    function startAudioVisualization() {
+      const dataArray = new Uint8Array(state.analyser.frequencyBinCount);
+      
+      function updateVisualization() {
+        if (state.listening && !state.isSpeaking && state.analyser) {
+          state.analyser.getByteFrequencyData(dataArray);
+          
+          let volume = 0;
+          for (let i = 0; i < dataArray.length; i++) {
+            volume += dataArray[i];
+          }
+          volume = volume / dataArray.length / 255;
+          
+          // Update character based on audio input
+          updateCharacterVisualization(volume);
+          
+          // Update audio visualizer bars
+          updateAudioBars(dataArray);
+          
+          if (volume > 0.05) {
+            state.lastSpeechTime = Date.now();
+          }
+        }
+        
+        requestAnimationFrame(updateVisualization);
+      }
+      updateVisualization();
+    }
+
+    function updateCharacterVisualization(volume) {
+      const intensity = Math.min(1, volume * 3);
+      const glowIntensity = 40 + (intensity * 60);
+      const scale = 1 + (intensity * 0.1);
+      
+      elements.character.style.transform = `scale(${scale})`;
+      elements.character.style.boxShadow = `
+        0 0 ${glowIntensity}px rgba(16, 185, 129, ${0.3 + intensity * 0.4}),
+        0 0 ${glowIntensity * 2}px rgba(16, 185, 129, ${0.1 + intensity * 0.2}),
+        inset 0 0 40px rgba(255, 255, 255, 0.1)
+      `;
+    }
+
+    function updateAudioBars(dataArray) {
+      const bars = elements.audioVisualizer.querySelectorAll('.audio-bar');
+      bars.forEach((bar, index) => {
+        const dataIndex = Math.floor((index / bars.length) * dataArray.length);
+        const height = Math.max(20, (dataArray[dataIndex] / 255) * 60);
+        bar.style.height = `${height}px`;
+        bar.style.background = `hsl(${120 + (dataArray[dataIndex] / 255) * 120}, 70%, 60%)`;
+      });
+    }
+
+    // --- SPEECH RECOGNITION ---
+    function startListening() {
+      if (!SpeechRecognition) return;
+      
+      state.recognition = new SpeechRecognition();
+      Object.assign(state.recognition, { 
+        lang: 'en-US', 
+        continuous: true, 
+        interimResults: true,
+        maxAlternatives: 1
+      });
+
+      state.recognition.onresult = handleRecognitionResult;
+      state.recognition.onerror = handleRecognitionError;
+      state.recognition.onend = () => {
+        if (state.listening) {
+          setTimeout(() => state.recognition.start(), 100);
+        }
+      };
+
+      state.recognition.start();
+      state.listening = true;
+      state.sessionStartTime = Date.now();
+      state.lastSpeechTime = Date.now();
+      
+      elements.toggleBtn.innerHTML = '<i class="fas fa-stop"></i> End Session';
+      elements.toggleBtn.classList.add('recording');
+      setListeningState();
+      
+      updateProgress(10);
+      addMessage("Session started! Take your time explaining - I'll wait for natural pauses.", 'system');
+      startSessionTimer();
+      startPauseDetection();
+    }
+
+    function handleRecognitionError(event) {
+      console.error("Speech recognition error:", event.error);
+      if (event.error !== 'no-speech') {
+        showStatusMessage(`Recognition error: ${event.error}. Continuing...`, 'warning');
+      }
+    }
+
+    async function handleRecognitionResult(event) {
+      const lastResult = event.results[event.results.length - 1];
+      const transcript = lastResult[0].transcript.trim();
+      const isFinal = lastResult.isFinal;
+      
+      state.lastSpeechTime = Date.now();
+      
+      if (isFinal && transcript.length > 3 && !state.currentTranscriptBuffer.includes(transcript)) {
+        state.currentTranscriptBuffer += (state.currentTranscriptBuffer ? ' ' : '') + transcript;
+        
+        clearTimeout(state.pauseTimer);
+        state.pauseTimer = setTimeout(processCompleteTranscript, state.silenceThreshold);
+        
+        setWaitingState();
+        updateCurrentAnalysis(`Listening: "${state.currentTranscriptBuffer.slice(-50)}${state.currentTranscriptBuffer.length > 50 ? '...' : ''}"`);
+      }
+    }
+
+    async function processCompleteTranscript() {
+      if (state.isProcessingPause || 
+          state.isSpeaking || 
+          state.apiOnCooldown ||
+          state.currentTranscriptBuffer.length < state.minimumSpeechLength) {
+        return;
+      }
+      
+      const transcript = state.currentTranscriptBuffer.trim();
+      
+      if (transcript === state.lastProcessedTranscript) {
+        return;
+      }
+      
+      state.isProcessingPause = true;
+      state.lastProcessedTranscript = transcript;
+      state.apiOnCooldown = true;
+      setTimeout(() => state.apiOnCooldown = false, API_COOLDOWN_MS);
+
+      state.currentTranscriptBuffer = "";
+      state.transcriptLog.push(transcript);
+      state.conversationHistory.push({ role: 'user', content: transcript, timestamp: Date.now() });
+      
+      addMessage(transcript, 'user');
+      setThinkingState();
+      
+      updateProgress(Math.min(90, 20 + state.questionCount * 15));
+
+      try {
+        const [interpretation, response] = await Promise.all([
+          generateInterpretation(transcript),
+          shouldGenerateResponse() ? generateEnhancedResponse(transcript) : Promise.resolve(null)
+        ]);
+
+        updateCurrentAnalysis(interpretation);
+        
+        if (response) {
+          state.conversationHistory.push({ role: 'assistant', content: response, timestamp: Date.now() });
+          reply(response);
+          state.questionCount++;
+          updateStats();
+        } else {
+          setListeningState();
+        }
+      } catch (error) {
+        console.error("Error during AI processing:", error);
+        reply("I had some trouble processing that. Could you try explaining it again?");
+      } finally {
+        state.isProcessingPause = false;
+      }
+    }
+
+    function stopListening() {
+      if (state.recognition) state.recognition.stop();
+      state.listening = false;
+      
+      clearTimeout(state.pauseTimer);
+      clearInterval(state.sessionTimer);
+      
+      elements.toggleBtn.innerHTML = '<i class="fas fa-play"></i> Start Learning Session';
+      elements.toggleBtn.classList.remove('recording');
+      setIdleState();
+
+      updateProgress(100);
+
+      if (state.currentTranscriptBuffer.length >= state.minimumSpeechLength) {
+        processCompleteTranscript();
+      }
+
+      const mode = elements.modeSelect.value;
+      if ((mode === 'askEnd' || mode === 'summary') && state.transcriptLog.length > 0) {
+        const sessionData = {
+          transcript: state.transcriptLog.join(". "),
+          duration: Math.round((Date.now() - state.sessionStartTime) / 1000 / 60),
+          questionCount: state.questionCount,
+          mode: mode
+        };
+        
+        generateSessionSummary(sessionData).then(reply);
+        resetSession();
+      }
+    }
+
+    // --- AI SYSTEM ---
+    async function generateInterpretation(transcript) {
+      try {
+        let prompt = `Analyze this student's explanation in one insightful sentence: "${transcript}"`;
+        
+        if (state.hasTextbook) {
+          const relevantContent = findRelevantContext(transcript);
+          prompt = `Based on the textbook context, analyze this student's explanation in one insightful sentence: "${transcript}"
+          
+Reference material: ${relevantContent || state.textbookContent.substring(0, 1000)}`;
+        }
+        
+        return await queryGemini(prompt);
+      } catch (error) {
+        console.error("Interpretation error:", error);
+        return "Processing your explanation...";
+      }
+    }
+
+    async function generateEnhancedResponse(transcript) {
+      try {
+        const difficulty = elements.difficultySelect.value;
+        const mode = elements.modeSelect.value;
+        const conversationContext = state.conversationHistory.slice(-4);
+        
+        let prompt = buildEnhancedPrompt(transcript, mode, difficulty, conversationContext);
+        return await queryGemini(prompt);
+      } catch (error) {
+        console.error("Response generation error:", error);
+        return "That's interesting! Can you tell me more about that specific part?";
+      }
+    }
+
+    function buildEnhancedPrompt(transcript, mode, difficulty, conversationContext) {
+      let contextStr = "";
+      if (conversationContext.length > 0) {
+        contextStr = "Previous conversation: " + 
+          conversationContext.map(msg => `${msg.role}: ${msg.content}`).join(' | ') + '\n\n';
+      }
+
+      let textbookContext = "";
+      if (state.hasTextbook && state.textbookContent) {
+        const relevantContent = findRelevantContext(transcript);
+        if (relevantContent) {
+          textbookContext = `RELEVANT TEXTBOOK SECTIONS:\n${relevantContent}\n\n`;
+        } else {
+          textbookContext = `TEXTBOOK CONTEXT:\n${state.textbookContent.substring(0, 2000)}...\n\n`;
+        }
+      }
+      
+      const modeInstructions = {
+        'interactive': 'Ask one thoughtful follow-up question to deepen understanding.',
+        'askBetween': 'Ask a clarifying question about their explanation.',
+        'socratic': 'Guide them to discover answers through questioning. Never give direct answers.',
+        'askEnd': 'Provide comprehensive questioning after their explanation.',
+        'summary': 'Summarize and ask strategic follow-up questions.'
+      };
+
+      const difficultyLevels = {
+        'beginner': 'Use simple language and ask foundational questions.',
+        'intermediate': 'Ask about connections and applications.',
+        'advanced': 'Push for deep analysis and underlying principles.'
+      };
+
+      const textbookInstruction = state.hasTextbook ? 
+        "CRITICAL: Only ask questions that relate directly to the textbook material. Keep within the scope of the uploaded content." : 
+        "";
+
+      return `You are an expert tutor using the Feynman technique. ${modeInstructions[mode]} ${difficultyLevels[difficulty]}
+
+${textbookContext}${contextStr}Student said: "${transcript}"
+
+${textbookInstruction}
+
+Respond in under 40 words with one insightful question. Be encouraging and conversational.`;
+    }
+
+    async function queryGemini(prompt) {
+      try {
+        const payload = {
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.8,
+            topP: 0.9,
+            topK: 40,
+            maxOutputTokens: 120,
+          },
+          safetySettings: [
+            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" }
+          ]
+        };
+
+        const response = await fetch(API_URL, { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify(payload) 
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.candidates || data.candidates.length === 0) {
+          throw new Error("No response candidates received");
+        }
+        
+        const text = data.candidates[0].content?.parts?.[0]?.text;
+        if (!text) {
+          throw new Error("Empty response received");
+        }
+        
+        return text.trim();
+      } catch (error) {
+        console.error("API Error:", error);
+        throw error;
+      }
+    }
+
+    // --- FILE HANDLING ---
+    function handleDragOver(e) {
+      e.preventDefault();
+      elements.fileUploadArea.classList.add('drag-over');
+    }
+
+    function handleDragLeave(e) {
+      e.preventDefault();
+      elements.fileUploadArea.classList.remove('drag-over');
+    }
+
+    function handleFileDrop(e) {
+      e.preventDefault();
+      elements.fileUploadArea.classList.remove('drag-over');
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        processFile(files[0]);
+      }
+    }
+
+    function handleFileSelect(e) {
+      const files = e.target.files;
+      if (files.length > 0) {
+        processFile(files[0]);
+      }
+    }
+
+    async function processFile(file) {
+      const maxSize = 10 * 1024 * 1024;
+      if (file.size > maxSize) {
+        showStatusMessage("File too large. Please use files under 10MB.", 'error');
+        return;
+      }
+
+      state.fileName = file.name;
+      elements.fileUploadArea.classList.add('has-file');
+      elements.removeFileBtn.style.display = 'flex';
+      
+      addMessage(`Processing: ${file.name}...`, 'system');
+      showStatusMessage("Processing file...", 'warning');
+
+      try {
+        let content = '';
+        
+        if (file.type === 'text/plain') {
+          content = await readTextFile(file);
+        } else if (file.type === 'application/pdf') {
+          content = await extractPDFText(file);
+        } else {
+          content = await readTextFile(file);
+        }
+
+        if (content.trim().length < 50) {
+          showStatusMessage("File appears to be empty or couldn't be read properly.", 'error');
+          removeFile();
+          return;
+        }
+
+        state.textbookContent = preprocessTextbookContent(content);
+        state.hasTextbook = true;
+
+        elements.fileInfo.style.display = 'block';
+        elements.fileInfo.innerHTML = `
+          <div style="color: var(--success); font-weight: 600; margin-bottom: 0.5rem;">
+            <i class="fas fa-check-circle"></i> ${file.name}
+          </div>
+          <div style="color: var(--text-muted); font-size: 0.9rem;">
+            ${Math.round(content.length / 1000)}k characters loaded<br>
+            AI will now reference this material
+          </div>
+        `;
+
+        elements.fileUploadArea.querySelector('.upload-text').textContent = 'Study Material Loaded!';
+        elements.fileUploadArea.querySelector('.upload-subtext').innerHTML = `
+          <strong>${file.name}</strong><br>
+          Questions will be based on your material
+        `;
+
+        addMessage(`✅ Study material loaded successfully! I'll now ask questions relevant to your content.`, 'system');
+        showStatusMessage("Study material loaded successfully!", 'success');
+
+      } catch (error) {
+        console.error('File processing error:', error);
+        showStatusMessage(`Error processing ${file.name}. Please try a different format.`, 'error');
+        removeFile();
+      }
+    }
+
+    async function readTextFile(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.onerror = reject;
+        reader.readAsText(file);
+      });
+    }
+
+    async function extractPDFText(file) {
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        
+        let fullText = '';
+        const maxPages = Math.min(pdf.numPages, 50);
+        
+        for (let i = 1; i <= maxPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map(item => item.str).join(' ');
+          fullText += pageText + '\n';
+          
+          if (i % 5 === 0) {
+            addMessage(`Processing page ${i}/${maxPages}...`, 'system');
+          }
+        }
+        
+        if (fullText.trim().length < 50) {
+          throw new Error("PDF appears to contain no readable text");
+        }
+        
+        return fullText;
+      } catch (error) {
+        console.error('PDF extraction error:', error);
+        throw new Error("PDF extraction failed. Please try converting to TXT format.");
+      }
+    }
+
+    function removeFile() {
+      state.textbookContent = "";
+      state.fileName = "";
+      state.hasTextbook = false;
+      
+      elements.fileUploadArea.classList.remove('has-file');
+      elements.removeFileBtn.style.display = 'none';
+      elements.fileInfo.style.display = 'none';
+      elements.hiddenFileInput.value = '';
+      
+      elements.fileUploadArea.querySelector('.upload-text').textContent = 'Upload Your Study Material';
+      elements.fileUploadArea.querySelector('.upload-subtext').innerHTML = `
+        Drag & drop PDF, TXT, or DOCX files to get personalized questions<br>
+        <small>Supports files up to 10MB • AI will reference your content</small>
+      `;
+      
+      addMessage("Study material removed. I'll now ask general questions.", 'system');
+      showStatusMessage("Study material removed.", 'warning');
+    }
+
+    function preprocessTextbookContent(content) {
+      let processed = content
+        .replace(/\s+/g, ' ')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+      
+      const sections = [];
+      const lines = processed.split('\n');
+      let currentSection = '';
+      
+      for (let line of lines) {
+        line = line.trim();
+        if (!line) continue;
+        
+        if (line.length < 100 && (
+          line.toUpperCase() === line || 
+          /^(chapter|section|\d+\.|\d+\.\d+)/i.test(line) ||
+          line.endsWith(':')
+        )) {
+          if (currentSection.trim()) {
+            sections.push(currentSection.trim());
+          }
+          currentSection = line + '\n';
+        } else {
+          currentSection += line + ' ';
+        }
+        
+        if (sections.join('\n').length > 6000) {
+          break;
+        }
+      }
+      
+      if (currentSection.trim()) {
+        sections.push(currentSection.trim());
+      }
+      
+      return sections.join('\n\n').substring(0, 7000);
+    }
+
+    function findRelevantContext(transcript) {
+      if (!state.hasTextbook || !state.textbookContent) {
+        return "";
+      }
+      
+      const keywords = transcript.toLowerCase().split(' ').filter(word => word.length > 3);
+      const sections = state.textbookContent.split('\n\n');
+      const relevantSections = [];
+      
+      for (let section of sections) {
+        const sectionLower = section.toLowerCase();
+        let relevanceScore = 0;
+        
+        for (let keyword of keywords) {
+          if (sectionLower.includes(keyword)) {
+            relevanceScore++;
+          }
+        }
+        
+        if (relevanceScore > 0) {
+          relevantSections.push({ section, score: relevanceScore });
+        }
+      }
+      
+      return relevantSections
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 2)
+        .map(item => item.section)
+        .join('\n\n');
+    }
+
+    // --- UI FUNCTIONS ---
+    function addMessage(content, type) {
+      const message = document.createElement('div');
+      message.className = `message ${type} slide-up`;
+      
+      const icons = {
+        user: 'fas fa-user',
+        assistant: 'fas fa-robot',
+        system: 'fas fa-info-circle',
+        error: 'fas fa-exclamation-triangle'
+      };
+      
+      const labels = {
+        user: 'You',
+        assistant: 'AI Tutor',
+        system: 'System',
+        error: 'Error'
+      };
+      
+      message.innerHTML = `
+        <div class="message-header">
+          <i class="${icons[type]}"></i>
+          <span>${labels[type]}</span>
+          <span style="margin-left: auto; font-size: 0.7rem; opacity: 0.6;">
+            ${new Date().toLocaleTimeString()}
+          </span>
+        </div>
+        <div>${content}</div>
+      `;
+      
+      elements.conversationContent.appendChild(message);
+      elements.conversationContent.scrollTop = elements.conversationContent.scrollHeight;
+      
+      // Add to history
+      if (type !== 'system') {
+        addToHistory(content, type);
+      }
+    }
+
+    function addToHistory(content, type) {
+      const historyItem = document.createElement('div');
+      historyItem.className = 'history-item';
+      historyItem.innerHTML = `
+        <strong>${type === 'user' ? 'You' : 'AI Tutor'}:</strong><br>
+        ${content.substring(0, 100)}${content.length > 100 ? '...' : ''}
+      `;
+      elements.conversationHistory.appendChild(historyItem);
+    }
+
+    function toggleConversationHistory() {
+      state.historyVisible = !state.historyVisible;
+      elements.conversationHistory.classList.toggle('visible', state.historyVisible);
+      elements.historyToggle.innerHTML = state.historyVisible ? 
+        '<i class="fas fa-eye-slash"></i> Hide History' : 
+        '<i class="fas fa-history"></i> Show History';
+    }
+
+    function updateCurrentAnalysis(text) {
+      elements.currentAnalysis.innerHTML = `
+        <div style="color: var(--primary); margin-bottom: 0.5rem;">
+          <i class="fas fa-brain"></i> Current Analysis
+        </div>
+        <div style="font-style: italic; line-height: 1.6;">
+          ${text}
+        </div>
+      `;
+    }
+
+    function updateProgress(percentage) {
+      elements.progressFill.style.width = `${Math.min(100, percentage)}%`;
+    }
+
+    function updateStats() {
+      elements.questionCount.textContent = state.questionCount;
+      updateConversationQuality();
+    }
+
+    function updateConversationQuality() {
+      const baseQuality = Math.min(5, Math.floor(state.questionCount / 2) + 1);
+      const timeBonus = state.sessionStartTime ? Math.min(2, Math.floor((Date.now() - state.sessionStartTime) / 60000)) : 0;
+      state.conversationQuality = Math.min(5, baseQuality + timeBonus);
+      
+      const stars = elements.qualityStars.querySelectorAll('.star');
+      stars.forEach((star, index) => {
+        star.classList.toggle('active', index < state.conversationQuality);
+      });
+    }
+
+    function startSessionTimer() {
+      state.sessionTimer = setInterval(() => {
+        if (state.sessionStartTime) {
+          const minutes = Math.floor((Date.now() - state.sessionStartTime) / 60000);
+          elements.sessionTime.textContent = `${minutes}m`;
+        }
+      }, 1000);
+    }
+
+    // --- STATE MANAGEMENT ---
+    function setIdleState() {
+      document.body.className = '';
+      hideAllIndicators();
+      elements.character.className = 'character';
+      elements.audioVisualizer.classList.remove('active');
+    }
+
+    function setListeningState() {
+      document.body.className = 'listening';
+      hideAllIndicators();
+      elements.listeningIndicator.classList.add('active');
+      elements.character.className = 'character listening active';
+      elements.audioVisualizer.classList.add('active');
+    }
+
+    function setWaitingState() {
+      hideAllIndicators();
+      elements.waitingIndicator.classList.add('active');
+      elements.character.className = 'character listening';
+    }
+
+    function setThinkingState() {
+      document.body.className = 'thinking';
+      hideAllIndicators();
+      elements.thinkingIndicator.classList.add('active');
+      elements.character.className = 'character thinking active';
+      elements.audioVisualizer.classList.remove('active');
+    }
+
+    function setSpeakingState() {
+      document.body.className = 'speaking';
+      hideAllIndicators();
+      elements.speakingIndicator.classList.add('active');
+      elements.character.className = 'character speaking active';
+      elements.audioVisualizer.classList.remove('active');
+    }
+
+    function hideAllIndicators() {
+      document.querySelectorAll('.status-indicator').forEach(indicator => {
+        indicator.classList.remove('active');
+      });
+    }
+
+    // --- TTS SYSTEM ---
+    function reply(text) {
+      addMessage(text, 'assistant');
+      setSpeakingState();
+      speak(text, () => {
+        setListeningState();
+      });
+    }
+
+    function speak(text, callback) {
+      if (speechSynthesis.speaking) {
+        speechSynthesis.cancel();
+      }
+      
+      setTimeout(() => {
+        state.isSpeaking = true;
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        if (state.voice) utterance.voice = state.voice;
+        
+        utterance.rate = 0.9;
+        utterance.pitch = 1.0;
+        utterance.volume = 0.8;
+        
+        utterance.onend = () => { 
+          state.isSpeaking = false; 
+          if (callback) callback(); 
+        };
+        utterance.onerror = (e) => {
+          if (e.error !== 'interrupted') {
+            console.error("Speech synthesis error:", e.error);
+          }
+          state.isSpeaking = false;
+          if (callback) callback();
+        };
+        
+        speechSynthesis.speak(utterance);
+      }, 150);
+    }
+
+    // --- UTILITY FUNCTIONS ---
+    function showStatusMessage(message, type = 'info') {
+      elements.statusMessage.textContent = message;
+      elements.statusMessage.className = `status-message ${type} visible`;
+      
+      setTimeout(() => {
+        elements.statusMessage.classList.remove('visible');
+      }, 4000);
+    }
+
+    function shouldGenerateResponse() {
+      const mode = elements.modeSelect.value;
+      return mode === 'interactive' || mode === 'askBetween' || mode === 'socratic';
+    }
+
+    function startPauseDetection() {
+      const pauseMonitor = setInterval(() => {
+        if (!state.listening) {
+          clearInterval(pauseMonitor);
+          return;
+        }
+        
+        const timeSinceLastSpeech = Date.now() - (state.lastSpeechTime || Date.now());
+        
+        if (timeSinceLastSpeech > state.silenceThreshold && 
+            state.currentTranscriptBuffer.length >= state.minimumSpeechLength &&
+            !state.isProcessingPause &&
+            !state.isSpeaking &&
+            !state.apiOnCooldown) {
+          processCompleteTranscript();
+        }
+      }, 500);
+    }
+
+    function resetSession() {
+      state.transcriptLog = [];
+      state.conversationHistory = [];
+      state.questionCount = 0;
+      state.currentTranscriptBuffer = "";
+      state.lastProcessedTranscript = "";
+      state.conversationQuality = 0;
+      updateStats();
+    }
+
+    function cleanup() {
+      if (state.recognition) state.recognition.stop();
+      if (speechSynthesis.speaking) speechSynthesis.cancel();
+      clearTimeout(state.pauseTimer);
+      clearInterval(state.sessionTimer);
+      if (state.audioContext) state.audioContext.close();
+    }
+
+    function handleVisibilityChange() {
+      if (document.hidden && state.listening) {
+        console.log('Tab hidden, maintaining session');
+      }
+    }
+
+    // --- PARTICLE SYSTEM ---
+    function initializeParticles() {
+      for (let i = 0; i < 20; i++) {
+        createParticle();
+      }
+    }
+
+    function createParticle() {
+      const particle = document.createElement('div');
+      particle.className = 'particle';
+      particle.style.left = Math.random() * 100 + '%';
+      particle.style.animationDelay = Math.random() * 15 + 's';
+      particle.style.animationDuration = (10 + Math.random() * 10) + 's';
+      elements.particlesContainer.appendChild(particle);
+      
+      // Remove and recreate particle after animation
+      setTimeout(() => {
+        if (particle.parentNode) {
+          particle.remove();
+          createParticle();
+        }
+      }, 25000);
+    }
+
+    async function generateSessionSummary(sessionData) {
+      try {
+        const prompt = `Session wrap-up: Student spent ${sessionData.duration} minutes explaining "${sessionData.transcript}". 
+
+Provide: 1) Brief encouraging summary 2) One insight about their understanding 3) One question for further exploration. 
+
+Keep under 60 words, be conversational and encouraging.`;
+
+        return await queryGemini(prompt);
+      } catch (error) {
+        console.error("Session summary error:", error);
+        return `Great session! You covered some interesting points in ${sessionData.duration} minutes. What aspect would you like to explore further next time?`;
+      }
+    }
+
+    // Global error handling
+    window.addEventListener('error', (e) => {
+      console.error('Global error:', e.error || e.message || e);
+      showStatusMessage("An unexpected error occurred. The session will continue.", 'error');
+    });
+  </script>
+</body>
+</html>
