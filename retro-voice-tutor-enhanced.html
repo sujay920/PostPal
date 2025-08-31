@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Retro Voice Tutor - Enhanced</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
@@ -23,13 +24,17 @@
       box-sizing: border-box;
     }
 
-    body {
+    html, body {
       margin: 0;
+      padding: 0;
       min-height: 100vh;
       background: var(--bg-color);
       color: var(--main-text-color);
       font-family: 'Press Start 2P', monospace;
       overflow-x: hidden;
+    }
+
+    body {
       overflow-y: auto;
       display: flex;
       flex-direction: column;
@@ -460,12 +465,105 @@
       color: var(--warning-color);
       text-shadow: 0 0 5px var(--warning-color);
     }
+
+    /* File Upload Area */
+    #file-upload-area {
+      width: 90%;
+      max-width: 600px;
+      min-height: 120px;
+      border: 3px dashed var(--border-color);
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(20, 0, 40, 0.6), rgba(40, 0, 80, 0.4));
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      position: relative;
+      backdrop-filter: blur(5px);
+    }
+
+    #file-upload-area:hover {
+      border-color: var(--glow-color);
+      background: linear-gradient(135deg, rgba(40, 0, 80, 0.7), rgba(60, 0, 120, 0.5));
+      box-shadow: 0 0 20px rgba(160, 32, 240, 0.3);
+    }
+
+    #file-upload-area.drag-over {
+      border-color: var(--success-color);
+      background: linear-gradient(135deg, rgba(0, 40, 20, 0.7), rgba(0, 80, 40, 0.5));
+      box-shadow: 0 0 30px rgba(0, 255, 136, 0.4);
+    }
+
+    #file-upload-area.has-file {
+      border-color: var(--success-color);
+      background: linear-gradient(135deg, rgba(0, 40, 20, 0.8), rgba(0, 80, 40, 0.6));
+    }
+
+    .upload-text {
+      font-size: 10px;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    .upload-icon {
+      font-size: 24px;
+      margin-bottom: 5px;
+    }
+
+    #file-info {
+      display: none;
+      font-size: 9px;
+      color: var(--success-color);
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    #remove-file {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: var(--error-color);
+      border: none;
+      color: white;
+      width: 25px;
+      height: 25px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 12px;
+      display: none;
+    }
+
+    #remove-file:hover {
+      background: #ff6666;
+    }
+
+    #hidden-file-input {
+      display: none;
+    }
   </style>
 </head>
 <body>
   <canvas id="starfield"></canvas>
 
   <div id="main-container">
+    <!-- File Upload Area -->
+    <div id="file-upload-area">
+      <div class="upload-icon">📚</div>
+      <div class="upload-text">
+        <strong>Upload Your Textbook</strong><br/>
+        Drag & drop PDF, TXT, or DOCX files<br/>
+        <small>This helps me ask relevant questions from your material</small>
+      </div>
+      <button id="remove-file">×</button>
+      <div id="file-info"></div>
+    </div>
+    <input type="file" id="hidden-file-input" accept=".pdf,.txt,.docx,.doc" />
+
     <div id="character">
       <!-- Gender-neutral glowing orb character -->
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
@@ -569,7 +667,7 @@
     <div id="output" class="crt-container">
       <div class="system-text">🎓 Welcome to your Enhanced Retro Voice Tutor!</div>
       <br/>
-      Press "Start Teaching Session" and explain any topic you want to master. I'll use advanced questioning techniques to help deepen your understanding.
+      <strong>📚 Upload your textbook first</strong> for accurate, relevant questions, then press "Start Teaching Session" to begin learning with AI-powered questioning techniques.
     </div>
     
     <div id="interpretation" class="crt-container">
@@ -612,7 +710,11 @@
       difficultySelect: document.getElementById('difficultySelect'),
       interpretationBox: document.getElementById('interpretation'),
       progressFill: document.getElementById('progress-fill'),
-      qualityStars: document.querySelectorAll('.quality-star')
+      qualityStars: document.querySelectorAll('.quality-star'),
+      fileUploadArea: document.getElementById('file-upload-area'),
+      hiddenFileInput: document.getElementById('hidden-file-input'),
+      fileInfo: document.getElementById('file-info'),
+      removeFileBtn: document.getElementById('remove-file')
     };
     
     // --- ENHANCED STATE ---
@@ -635,7 +737,10 @@
       currentTranscriptBuffer: "",
       isProcessingPause: false,
       silenceThreshold: 2500, // 2.5 seconds of silence before processing
-      minimumSpeechLength: 10 // Minimum characters before considering it complete
+      minimumSpeechLength: 10, // Minimum characters before considering it complete
+      textbookContent: "", // Store uploaded textbook content
+      fileName: "",
+      hasTextbook: false
     };
 
     // --- BROWSER FEATURE DETECTION ---
@@ -650,6 +755,16 @@
     elements.accentSelect.addEventListener('change', () => {
       state.voice = speechSynthesis.getVoices().find(v => v.name === elements.accentSelect.value);
     });
+
+    // File upload event listeners
+    elements.fileUploadArea.addEventListener('click', () => elements.hiddenFileInput.click());
+    elements.hiddenFileInput.addEventListener('change', handleFileSelect);
+    elements.removeFileBtn.addEventListener('click', removeFile);
+
+    // Drag and drop handlers
+    elements.fileUploadArea.addEventListener('dragover', handleDragOver);
+    elements.fileUploadArea.addEventListener('dragleave', handleDragLeave);
+    elements.fileUploadArea.addEventListener('drop', handleFileDrop);
 
     // --- ENHANCED VOICE INITIALIZATION ---
     function loadVoices() {
@@ -688,6 +803,241 @@
     loadVoices();
     if (speechSynthesis.onvoiceschanged !== undefined) {
       speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    // --- FILE UPLOAD HANDLING ---
+    function handleDragOver(e) {
+      e.preventDefault();
+      elements.fileUploadArea.classList.add('drag-over');
+    }
+
+    function handleDragLeave(e) {
+      e.preventDefault();
+      elements.fileUploadArea.classList.remove('drag-over');
+    }
+
+    function handleFileDrop(e) {
+      e.preventDefault();
+      elements.fileUploadArea.classList.remove('drag-over');
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        processFile(files[0]);
+      }
+    }
+
+    function handleFileSelect(e) {
+      const files = e.target.files;
+      if (files.length > 0) {
+        processFile(files[0]);
+      }
+    }
+
+    async function processFile(file) {
+      const maxSize = 10 * 1024 * 1024; // 10MB limit
+      if (file.size > maxSize) {
+        appendOutput("⚠️ File too large. Please use files under 10MB.", 'error-text');
+        return;
+      }
+
+      state.fileName = file.name;
+      elements.fileUploadArea.classList.add('has-file');
+      elements.removeFileBtn.style.display = 'block';
+      
+      appendOutput(`📚 <strong>Processing:</strong> ${file.name}...`, 'system-text');
+
+      try {
+        let content = '';
+        
+        if (file.type === 'text/plain') {
+          content = await readTextFile(file);
+        } else if (file.type === 'application/pdf') {
+          content = await extractPDFText(file);
+        } else if (file.name.endsWith('.docx') || file.name.endsWith('.doc')) {
+          content = await extractDocText(file);
+        } else {
+          // Try to read as text anyway
+          content = await readTextFile(file);
+        }
+
+        if (content.trim().length < 50) {
+          appendOutput("⚠️ File appears to be empty or couldn't be read properly.", 'error-text');
+          removeFile();
+          return;
+        }
+
+        // Process and store textbook content
+        state.textbookContent = preprocessTextbookContent(content);
+        state.hasTextbook = true;
+
+        elements.fileInfo.style.display = 'block';
+        elements.fileInfo.innerHTML = `✅ <strong>${file.name}</strong><br/>
+          ${Math.round(content.length / 1000)}k characters loaded<br/>
+          <small>AI will now reference this material</small>`;
+
+        elements.fileUploadArea.querySelector('.upload-text').innerHTML = `
+          <strong>Textbook Loaded!</strong><br/>
+          ${file.name}<br/>
+          <small>Questions will be based on your material</small>
+        `;
+
+        appendOutput(`✅ <strong>Textbook loaded successfully!</strong> I'll now ask questions relevant to your study material.`, 'system-text');
+
+      } catch (error) {
+        console.error('File processing error:', error);
+        appendOutput(`⚠️ Error processing ${file.name}. Please try a different file format.`, 'error-text');
+        removeFile();
+      }
+    }
+
+    async function readTextFile(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.onerror = reject;
+        reader.readAsText(file);
+      });
+    }
+
+    async function extractPDFText(file) {
+      appendOutput("📄 Extracting text from PDF...", 'system-text');
+      
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        
+        let fullText = '';
+        const maxPages = Math.min(pdf.numPages, 50); // Limit to 50 pages for performance
+        
+        for (let i = 1; i <= maxPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map(item => item.str).join(' ');
+          fullText += pageText + '\n';
+          
+          // Show progress
+          if (i % 5 === 0) {
+            appendOutput(`📄 Processing page ${i}/${maxPages}...`, 'system-text');
+          }
+        }
+        
+        if (fullText.trim().length < 50) {
+          throw new Error("PDF appears to contain no readable text");
+        }
+        
+        return fullText;
+      } catch (error) {
+        console.error('PDF extraction error:', error);
+        appendOutput("⚠️ PDF extraction failed. Please try converting to TXT format for best results.", 'error-text');
+        throw error;
+      }
+    }
+
+    async function extractDocText(file) {
+      // For DOCX extraction, we'll use a simple approach
+      // In a production app, you'd use mammoth.js or similar
+      appendOutput("📄 DOCX detected. For best results, try converting to TXT format first.", 'system-text');
+      
+      // Fallback: try to read as text
+      try {
+        return await readTextFile(file);
+      } catch {
+        throw new Error("DOCX text extraction not available. Please convert to TXT format.");
+      }
+    }
+
+    function removeFile() {
+      state.textbookContent = "";
+      state.fileName = "";
+      state.hasTextbook = false;
+      
+      elements.fileUploadArea.classList.remove('has-file');
+      elements.removeFileBtn.style.display = 'none';
+      elements.fileInfo.style.display = 'none';
+      elements.hiddenFileInput.value = '';
+      
+      elements.fileUploadArea.querySelector('.upload-text').innerHTML = `
+        <strong>Upload Your Textbook</strong><br/>
+        Drag & drop PDF, TXT, or DOCX files<br/>
+        <small>This helps me ask relevant questions from your material</small>
+      `;
+      
+      appendOutput("📚 Textbook removed. I'll now ask general questions.", 'system-text');
+    }
+
+    function preprocessTextbookContent(content) {
+      // Clean and optimize textbook content for AI processing
+      let processed = content
+        .replace(/\s+/g, ' ') // Normalize whitespace
+        .replace(/\n{3,}/g, '\n\n') // Reduce excessive line breaks
+        .trim();
+      
+      // Extract key sections (chapters, headings, definitions)
+      const sections = [];
+      const lines = processed.split('\n');
+      let currentSection = '';
+      
+      for (let line of lines) {
+        line = line.trim();
+        if (!line) continue;
+        
+        // Detect headings/chapters (simple heuristic)
+        if (line.length < 100 && (
+          line.toUpperCase() === line || 
+          /^(chapter|section|\d+\.|\d+\.\d+)/i.test(line) ||
+          line.endsWith(':')
+        )) {
+          if (currentSection.trim()) {
+            sections.push(currentSection.trim());
+          }
+          currentSection = line + '\n';
+        } else {
+          currentSection += line + ' ';
+        }
+        
+        // Limit total length for API efficiency
+        if (sections.join('\n').length > 6000) {
+          break;
+        }
+      }
+      
+      if (currentSection.trim()) {
+        sections.push(currentSection.trim());
+      }
+      
+      return sections.join('\n\n').substring(0, 7000); // Final limit
+    }
+
+    function findRelevantContext(transcript) {
+      if (!state.hasTextbook || !state.textbookContent) {
+        return "";
+      }
+      
+      // Simple keyword matching to find relevant sections
+      const keywords = transcript.toLowerCase().split(' ').filter(word => word.length > 3);
+      const sections = state.textbookContent.split('\n\n');
+      const relevantSections = [];
+      
+      for (let section of sections) {
+        const sectionLower = section.toLowerCase();
+        let relevanceScore = 0;
+        
+        for (let keyword of keywords) {
+          if (sectionLower.includes(keyword)) {
+            relevanceScore++;
+          }
+        }
+        
+        if (relevanceScore > 0) {
+          relevantSections.push({ section, score: relevanceScore });
+        }
+      }
+      
+      // Return top 2 most relevant sections
+      return relevantSections
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 2)
+        .map(item => item.section)
+        .join('\n\n');
     }
 
     // --- ENHANCED SPEECH RECOGNITION ---
@@ -891,7 +1241,14 @@
     // --- ENHANCED AI SYSTEM ---
     async function generateInterpretation(transcript) {
       try {
-        const prompt = `Analyze this student's explanation in 6 words or less, focusing on the main concept: "${transcript}"`;
+        let prompt = `Analyze this student's explanation in 6 words or less, focusing on the main concept: "${transcript}"`;
+        
+        if (state.hasTextbook) {
+          prompt = `Based on the textbook context, analyze this student's explanation in 6 words or less: "${transcript}"
+          
+Reference material: ${state.textbookContent.substring(0, 1000)}...`;
+        }
+        
         return await queryGemini(prompt);
       } catch (error) {
         console.error("Interpretation error:", error);
@@ -919,6 +1276,18 @@
         contextStr = "Previous conversation: " + 
           conversationContext.map(msg => `${msg.role}: ${msg.content}`).join(' | ') + '\n\n';
       }
+
+      // Add relevant textbook context if available
+      let textbookContext = "";
+      if (state.hasTextbook && state.textbookContent) {
+        const relevantContent = findRelevantContext(transcript);
+        if (relevantContent) {
+          textbookContext = `RELEVANT TEXTBOOK SECTIONS (base your questions on this material):\n${relevantContent}\n\n`;
+        } else {
+          // Fallback to first part of textbook if no specific match
+          textbookContext = `TEXTBOOK CONTEXT (keep questions within this scope):\n${state.textbookContent.substring(0, 2000)}...\n\n`;
+        }
+      }
       
       const modeInstructions = {
         'interactive': 'Ask one follow-up question to deepen understanding.',
@@ -934,9 +1303,15 @@
         'advanced': 'Push for deep analysis and underlying principles.'
       };
 
+      const textbookInstruction = state.hasTextbook ? 
+        "CRITICAL: Only ask questions that relate directly to the textbook material above. Do not go beyond the scope of the uploaded content. If the student mentions something not in the textbook, gently redirect them back to the material." : 
+        "";
+
       return `You are a friendly tutor using the Feynman technique. ${modeInstructions[mode]} ${difficultyLevels[difficulty]}
 
-${contextStr}Student said: "${transcript}"
+${textbookContext}${contextStr}Student said: "${transcript}"
+
+${textbookInstruction}
 
 Respond in under 35 words with one thoughtful question. Be encouraging and conversational.`;
     }
@@ -1048,7 +1423,10 @@ Keep under 50 words, be conversational and encouraging.`;
         state.currentTopic = interpretation;
       }
       
-      elements.interpretationBox.querySelector('i').innerHTML = interpretation;
+      const contextIndicator = state.hasTextbook ? "📚 " : "🤔 ";
+      const contextLabel = state.hasTextbook ? "Textbook Analysis" : "Analysis";
+      
+      elements.interpretationBox.innerHTML = `${contextIndicator} <strong>${contextLabel}:</strong> <i>${interpretation}</i>`;
     }
 
     function updateProgress(percentage) {
@@ -1258,9 +1636,11 @@ Keep under 50 words, be conversational and encouraging.`;
     let animationSpeed = 1;
 
     function resize() {
+      // Ensure canvas covers the full viewport and beyond for scrolling
       canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      stars = Array.from({ length: 400 }, () => ({
+      canvas.height = Math.max(window.innerHeight, document.body.scrollHeight);
+      
+      stars = Array.from({ length: 500 }, () => ({
         x: (Math.random() - 0.5) * canvas.width * 2,
         y: (Math.random() - 0.5) * canvas.height * 2,
         z: Math.random() * canvas.width,
@@ -1269,6 +1649,15 @@ Keep under 50 words, be conversational and encouraging.`;
     }
 
     window.addEventListener('resize', resize);
+    
+    // Also resize when content changes (scrollHeight changes)
+    const resizeObserver = new ResizeObserver(() => {
+      const newHeight = Math.max(window.innerHeight, document.body.scrollHeight);
+      if (canvas.height !== newHeight) {
+        resize();
+      }
+    });
+    resizeObserver.observe(document.body);
 
     function draw() {
       // Dynamic speed based on state
@@ -1276,7 +1665,8 @@ Keep under 50 words, be conversational and encouraging.`;
       else if (state.isSpeaking) animationSpeed = 1.5;
       else animationSpeed = 1;
 
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+      // Clear entire canvas with pure black (no transparency)
+      ctx.fillStyle = 'black';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
       ctx.save();
@@ -1293,9 +1683,10 @@ Keep under 50 words, be conversational and encouraging.`;
         let k = 256.0 / star.z;
         let sx = star.x * k, sy = star.y * k;
         
-        if (Math.abs(sx) < canvas.width / 2 && Math.abs(sy) < canvas.height / 2) {
+        // Expand visible area to cover entire canvas
+        if (Math.abs(sx) < canvas.width && Math.abs(sy) < canvas.height) {
           let size = (1 - star.z / canvas.width) * 3;
-          let alpha = (1 - star.z / canvas.width) * 0.8;
+          let alpha = (1 - star.z / canvas.width) * 0.9;
           
           // Color variation based on state
           if (state.listening) {
@@ -1391,10 +1782,16 @@ Keep under 50 words, be conversational and encouraging.`;
 
     // Add some helpful tips
     setTimeout(() => {
-      if (!state.listening) {
-        appendOutput("💡 <strong>Tip:</strong> I use intelligent pause detection - take your time explaining, and I'll wait for natural breaks before responding!", 'system-text');
+      if (!state.listening && !state.hasTextbook) {
+        appendOutput("💡 <strong>Tip:</strong> Upload your textbook above to get questions that match your study material exactly!", 'system-text');
       }
     }, 4000);
+
+    setTimeout(() => {
+      if (!state.listening) {
+        appendOutput("🕐 <strong>Note:</strong> I use intelligent pause detection - take your time explaining, and I'll wait for natural breaks before responding!", 'system-text');
+      }
+    }, 8000);
 
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
