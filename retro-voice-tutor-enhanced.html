@@ -25,21 +25,23 @@
 
     body {
       margin: 0;
-      height: 100vh;
+      min-height: 100vh;
       background: var(--bg-color);
       color: var(--main-text-color);
       font-family: 'Press Start 2P', monospace;
-      overflow: hidden;
+      overflow-x: hidden;
+      overflow-y: auto;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       text-align: center;
       position: relative;
+      padding: 20px 0;
     }
 
     canvas#starfield {
-      position: absolute;
+      position: fixed;
       top: 0;
       left: 0;
       width: 100%;
@@ -237,6 +239,12 @@
       border-color: var(--glow-color);
       color: var(--glow-color);
       box-shadow: 0 0 15px rgba(160, 32, 240, 0.3);
+    }
+
+    #waitingIndicator {
+      border-color: var(--warning-color);
+      color: var(--warning-color);
+      box-shadow: 0 0 15px rgba(255, 170, 0, 0.2);
     }
 
     @keyframes pulse {
@@ -504,16 +512,16 @@
           </circle>
         </g>
         
-        <!-- Facial features that appear during interaction -->
-        <g id="face" opacity="0">
-          <!-- Simple eyes -->
-          <circle id="leftEyeDot" cx="42" cy="45" r="3" fill="#ffffff" opacity="0.9"/>
-          <circle cx="42" cy="45" r="1.5" fill="#000"/>
-          <circle id="rightEyeDot" cx="58" cy="45" r="3" fill="#ffffff" opacity="0.9"/>
-          <circle cx="58" cy="45" r="1.5" fill="#000"/>
-          
-          <!-- Simple mouth -->
-          <path id="mouthPath" d="M 45 55 Q 50 60 55 55" stroke="#ffffff" stroke-width="2" fill="none" opacity="0.8"/>
+        <!-- Modern energy core that pulses during interaction -->
+        <g id="energyCore">
+          <circle id="pulseRing1" cx="50" cy="50" r="25" fill="none" stroke="var(--glow-color)" stroke-width="1" opacity="0.3">
+            <animate attributeName="r" values="25;30;25" dur="2s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="0.3;0.1;0.3" dur="2s" repeatCount="indefinite"/>
+          </circle>
+          <circle id="pulseRing2" cx="50" cy="50" r="15" fill="none" stroke="#ffffff" stroke-width="0.5" opacity="0.2">
+            <animate attributeName="r" values="15;20;15" dur="1.5s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="0.2;0.05;0.2" dur="1.5s" repeatCount="indefinite"/>
+          </circle>
         </g>
       </svg>
     </div>
@@ -552,6 +560,7 @@
       
       <div id="indicators">
         <div id="listeningIndicator" class="indicator">🎙️ Listening...</div>
+        <div id="waitingIndicator" class="indicator">⏳ Waiting for pause...</div>
         <div id="thinkingIndicator" class="indicator">🧠 Thinking...</div>
         <div id="speakingIndicator" class="indicator">🗣️ Speaking...</div>
       </div>
@@ -588,13 +597,13 @@
       mainOrb: document.getElementById('mainOrb'),
       innerCore: document.getElementById('innerCore'),
       outerRing: document.getElementById('outerRing'),
-      face: document.getElementById('face'),
-      mouthPath: document.getElementById('mouthPath'),
-      leftEyeDot: document.getElementById('leftEyeDot'),
-      rightEyeDot: document.getElementById('rightEyeDot'),
+      energyCore: document.getElementById('energyCore'),
+      pulseRing1: document.getElementById('pulseRing1'),
+      pulseRing2: document.getElementById('pulseRing2'),
       particles: document.getElementById('particles'),
       toggleBtn: document.getElementById('toggleBtn'),
       listeningIndicator: document.getElementById('listeningIndicator'),
+      waitingIndicator: document.getElementById('waitingIndicator'),
       thinkingIndicator: document.getElementById('thinkingIndicator'),
       speakingIndicator: document.getElementById('speakingIndicator'),
       output: document.getElementById('output'),
@@ -620,7 +629,13 @@
       questionCount: 0,
       conversationQuality: 0,
       sessionStartTime: null,
-      blinkInterval: null
+      blinkInterval: null,
+      lastSpeechTime: null,
+      pauseTimer: null,
+      currentTranscriptBuffer: "",
+      isProcessingPause: false,
+      silenceThreshold: 2500, // 2.5 seconds of silence before processing
+      minimumSpeechLength: 10 // Minimum characters before considering it complete
     };
 
     // --- BROWSER FEATURE DETECTION ---
@@ -683,7 +698,7 @@
       Object.assign(state.recognition, { 
         lang: 'en-US', 
         continuous: true, 
-        interimResults: false,
+        interimResults: true, // Enable interim results for better pause detection
         maxAlternatives: 1
       });
 
@@ -691,21 +706,22 @@
       state.recognition.onerror = handleRecognitionError;
       state.recognition.onend = () => {
         if (state.listening) {
-          setTimeout(() => state.recognition.start(), 100); // Brief delay before restart
+          setTimeout(() => state.recognition.start(), 100);
         }
       };
 
       state.recognition.start();
       state.listening = true;
       state.sessionStartTime = Date.now();
+      state.lastSpeechTime = Date.now();
       
       elements.toggleBtn.textContent = 'End Session';
       elements.listeningIndicator.style.display = 'block';
       document.body.classList.add('listening');
       
       updateProgress(10);
-      appendOutput("🎓 <strong>Session started!</strong> I'm listening...", 'system-text');
-      startBlinking();
+      appendOutput("🎓 <strong>Session started!</strong> Take your time explaining - I'll wait for natural pauses.", 'system-text');
+      startPauseDetection();
     }
 
     function handleRecognitionError(event) {
@@ -718,30 +734,68 @@
     }
 
     async function handleRecognitionResult(event) {
-      const transcript = event.results[event.results.length - 1][0].transcript.trim();
+      const lastResult = event.results[event.results.length - 1];
+      const transcript = lastResult[0].transcript.trim();
+      const isFinal = lastResult.isFinal;
+      
+      // Update speech timing
+      state.lastSpeechTime = Date.now();
+      
+      if (isFinal) {
+        // Add to transcript buffer
+        if (transcript.length > 3 && !state.currentTranscriptBuffer.includes(transcript)) {
+          state.currentTranscriptBuffer += (state.currentTranscriptBuffer ? ' ' : '') + transcript;
+          
+          // Reset pause timer since we got new speech
+          clearTimeout(state.pauseTimer);
+          
+          // Start new pause timer
+          state.pauseTimer = setTimeout(() => {
+            processCompleteTranscript();
+          }, state.silenceThreshold);
+          
+          // Show interim feedback and waiting indicator
+          elements.interpretationBox.innerHTML = `🎙️ <strong>Listening:</strong> <i>${state.currentTranscriptBuffer.slice(-50)}${state.currentTranscriptBuffer.length > 50 ? '...' : ''}</i>`;
+          elements.waitingIndicator.style.display = 'block';
+          elements.listeningIndicator.style.display = 'none';
+        }
+      }
+    }
 
-      // Enhanced duplicate detection
-      if (transcript === state.lastProcessedTranscript || 
-          transcript.length < 3 || 
+    async function processCompleteTranscript() {
+      if (state.isProcessingPause || 
           state.isSpeaking || 
-          state.apiOnCooldown) {
+          state.apiOnCooldown ||
+          state.currentTranscriptBuffer.length < state.minimumSpeechLength) {
         return;
       }
-        
+      
+      const transcript = state.currentTranscriptBuffer.trim();
+      
+      // Prevent duplicate processing
+      if (transcript === state.lastProcessedTranscript) {
+        return;
+      }
+      
+      state.isProcessingPause = true;
       state.lastProcessedTranscript = transcript;
       state.apiOnCooldown = true;
       setTimeout(() => state.apiOnCooldown = false, API_COOLDOWN_MS);
 
+      // Clear the buffer
+      state.currentTranscriptBuffer = "";
+      
       state.transcriptLog.push(transcript);
       state.conversationHistory.push({ role: 'user', content: transcript, timestamp: Date.now() });
       
       appendOutput(`<span class="prefix">You:</span> <span class="user-text">${transcript}</span>`);
+      elements.waitingIndicator.style.display = 'none';
       setThinkingState();
       
       updateProgress(Math.min(90, 20 + state.questionCount * 15));
 
       try {
-        // Enhanced AI processing with parallel calls for better performance
+        // Process with AI
         const [interpretation, response] = await Promise.all([
           generateInterpretation(transcript),
           shouldGenerateResponse() ? generateEnhancedResponse(transcript) : Promise.resolve(null)
@@ -754,11 +808,36 @@
           reply(response);
           state.questionCount++;
           updateConversationQuality();
+        } else {
+          setIdleState();
         }
       } catch (error) {
         console.error("Error during AI processing:", error);
-        reply("I encountered a technical difficulty. Could you please rephrase that?");
+        reply("I had some trouble processing that. Could you try explaining it again?");
+      } finally {
+        state.isProcessingPause = false;
       }
+    }
+
+    function startPauseDetection() {
+      // Monitor for natural conversation pauses
+      const pauseMonitor = setInterval(() => {
+        if (!state.listening) {
+          clearInterval(pauseMonitor);
+          return;
+        }
+        
+        const timeSinceLastSpeech = Date.now() - (state.lastSpeechTime || Date.now());
+        
+        // If there's been a long pause and we have content to process
+        if (timeSinceLastSpeech > state.silenceThreshold && 
+            state.currentTranscriptBuffer.length >= state.minimumSpeechLength &&
+            !state.isProcessingPause &&
+            !state.isSpeaking &&
+            !state.apiOnCooldown) {
+          processCompleteTranscript();
+        }
+      }, 500);
     }
 
     function shouldGenerateResponse() {
@@ -769,13 +848,22 @@
     function stopListening() {
       if (state.recognition) state.recognition.stop();
       state.listening = false;
+      
+      // Clear any pending timers
+      clearTimeout(state.pauseTimer);
+      
       elements.toggleBtn.textContent = 'Start Teaching Session';
       elements.listeningIndicator.style.display = 'none';
       document.body.classList.remove('listening');
+      cleanupAnimations();
       setIdleState();
-      stopBlinking();
 
       updateProgress(100);
+
+      // Process any remaining transcript buffer
+      if (state.currentTranscriptBuffer.length >= state.minimumSpeechLength) {
+        processCompleteTranscript();
+      }
 
       const mode = elements.modeSelect.value;
       if ((mode === 'askEnd' || mode === 'summary') && state.transcriptLog.length > 0) {
@@ -790,9 +878,13 @@
         };
         
         generateSessionSummary(sessionData).then(reply);
+        
+        // Reset session data
         state.transcriptLog = [];
         state.conversationHistory = [];
         state.questionCount = 0;
+        state.currentTranscriptBuffer = "";
+        state.lastProcessedTranscript = "";
       }
     }
 
@@ -979,6 +1071,7 @@ Keep under 50 words, be conversational and encouraging.`;
       appendOutput(`<span class="prefix">Tutor:</span> <span class="tutor-text">${text}</span>`);
       setSpeakingState();
       speak(text, () => {
+        cleanupAnimations();
         setIdleState();
         elements.speakingIndicator.style.display = 'none';
         document.body.classList.remove('speaking');
@@ -1024,15 +1117,16 @@ Keep under 50 words, be conversational and encouraging.`;
       document.body.className = '';
       elements.thinkingIndicator.style.display = 'none';
       
-      // Hide face for idle state
-      elements.face.style.opacity = '0';
-      
-      // Reset orb to normal glow
+      // Reset orb to calm state
       elements.outerRing.style.opacity = '0.4';
-      elements.innerCore.style.opacity = '0.8';
+      elements.innerCore.style.opacity = '0.7';
       
-      // Slow particle animation
-      elements.particles.style.animationDuration = '8s';
+      // Slow, calm particle animation
+      elements.particles.style.animationDuration = '10s';
+      
+      // Gentle energy core pulse
+      elements.pulseRing1.style.animationDuration = '3s';
+      elements.pulseRing2.style.animationDuration = '2.5s';
     }
 
     function setThinkingState() {
@@ -1040,83 +1134,121 @@ Keep under 50 words, be conversational and encouraging.`;
       elements.thinkingIndicator.style.display = 'block';
       elements.listeningIndicator.style.display = 'none';
       
-      // Show concentrated face
-      elements.face.style.opacity = '0.6';
-      elements.mouthPath.setAttribute('d', 'M 47 55 Q 50 57 53 55');
-      
-      // Intensify thinking glow
-      elements.outerRing.style.opacity = '0.7';
+      // Intensify thinking energy
+      elements.outerRing.style.opacity = '0.8';
       elements.innerCore.style.opacity = '1';
       
-      // Faster particles for thinking
+      // Faster particles for active thinking
       elements.particles.style.animationDuration = '4s';
       
-      // Focused eyes
-      elements.leftEyeDot.setAttribute('r', '2');
-      elements.rightEyeDot.setAttribute('r', '2');
+      // Rapid energy core pulse
+      elements.pulseRing1.style.animationDuration = '1s';
+      elements.pulseRing2.style.animationDuration = '0.8s';
+      
+      // Add thinking particle burst effect
+      createThinkingBurst();
     }
 
     function setSpeakingState() {
       document.body.className = 'speaking';
       elements.thinkingIndicator.style.display = 'none';
       
-      // Show expressive face
-      elements.face.style.opacity = '0.9';
-      
-      // Animate speaking
-      animateSpeakingOrb();
-      
-      // Bright speaking glow
-      elements.outerRing.style.opacity = '0.8';
+      // Maximum energy for speaking
+      elements.outerRing.style.opacity = '1';
       elements.innerCore.style.opacity = '1';
       
       // Very active particles
-      elements.particles.style.animationDuration = '2s';
+      elements.particles.style.animationDuration = '1.5s';
       
-      // Wide eyes for speaking
-      elements.leftEyeDot.setAttribute('r', '3');
-      elements.rightEyeDot.setAttribute('r', '3');
+      // Intense energy core pulse
+      elements.pulseRing1.style.animationDuration = '0.5s';
+      elements.pulseRing2.style.animationDuration = '0.3s';
+      
+      // Create speaking energy waves
+      createSpeakingWaves();
     }
 
-    function animateSpeakingOrb() {
-      let mouthState = 0;
-      const mouthStates = [
-        'M 45 55 Q 50 62 55 55', // Open
-        'M 46 55 Q 50 58 54 55', // Semi-open
-        'M 47 55 Q 50 60 53 55', // Medium
-        'M 45 55 Q 50 57 55 55'  // Closed
-      ];
+    function createThinkingBurst() {
+      // Add temporary thinking particles
+      const svg = elements.character.querySelector('svg');
+      const burst = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      burst.id = 'thinkingBurst';
       
-      const mouthInterval = setInterval(() => {
-        if (!state.isSpeaking) {
-          clearInterval(mouthInterval);
-          return;
-        }
+      for (let i = 0; i < 6; i++) {
+        const particle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        const angle = (i / 6) * Math.PI * 2;
+        const x = 50 + Math.cos(angle) * 25;
+        const y = 50 + Math.sin(angle) * 25;
         
-        elements.mouthPath.setAttribute('d', mouthStates[mouthState % mouthStates.length]);
-        mouthState++;
-      }, 150);
-    }
-
-    function startBlinking() {
-      state.blinkInterval = setInterval(() => {
-        if (!state.isSpeaking && state.listening && elements.face.style.opacity !== '0') {
-          // Blink animation for orb
-          elements.leftEyeDot.style.opacity = '0.2';
-          elements.rightEyeDot.style.opacity = '0.2';
-          setTimeout(() => {
-            elements.leftEyeDot.style.opacity = '0.9';
-            elements.rightEyeDot.style.opacity = '0.9';
-          }, 120);
-        }
-      }, 3000 + Math.random() * 2000);
-    }
-
-    function stopBlinking() {
-      if (state.blinkInterval) {
-        clearInterval(state.blinkInterval);
-        state.blinkInterval = null;
+        particle.setAttribute('cx', x);
+        particle.setAttribute('cy', y);
+        particle.setAttribute('r', '1');
+        particle.setAttribute('fill', '#ffaa00');
+        particle.setAttribute('opacity', '0.8');
+        
+        const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animateTransform');
+        animate.setAttribute('attributeName', 'transform');
+        animate.setAttribute('type', 'translate');
+        animate.setAttribute('values', `0 0; ${Math.cos(angle) * 15} ${Math.sin(angle) * 15}`);
+        animate.setAttribute('dur', '1s');
+        animate.setAttribute('repeatCount', 'indefinite');
+        
+        particle.appendChild(animate);
+        burst.appendChild(particle);
       }
+      
+      svg.appendChild(burst);
+      
+      // Remove after thinking is done
+      setTimeout(() => {
+        const existingBurst = document.getElementById('thinkingBurst');
+        if (existingBurst) existingBurst.remove();
+      }, 3000);
+    }
+
+    function createSpeakingWaves() {
+      // Add temporary speaking wave effects
+      const svg = elements.character.querySelector('svg');
+      const waves = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      waves.id = 'speakingWaves';
+      
+      for (let i = 0; i < 3; i++) {
+        const wave = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        wave.setAttribute('cx', '50');
+        wave.setAttribute('cy', '50');
+        wave.setAttribute('r', '40');
+        wave.setAttribute('fill', 'none');
+        wave.setAttribute('stroke', 'var(--success-color)');
+        wave.setAttribute('stroke-width', '1');
+        wave.setAttribute('opacity', '0');
+        
+        const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+        animate.setAttribute('attributeName', 'r');
+        animate.setAttribute('values', '35;50;65');
+        animate.setAttribute('dur', '1.5s');
+        animate.setAttribute('begin', `${i * 0.3}s`);
+        animate.setAttribute('repeatCount', 'indefinite');
+        
+        const animateOpacity = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+        animateOpacity.setAttribute('attributeName', 'opacity');
+        animateOpacity.setAttribute('values', '0;0.6;0');
+        animateOpacity.setAttribute('dur', '1.5s');
+        animateOpacity.setAttribute('begin', `${i * 0.3}s`);
+        animateOpacity.setAttribute('repeatCount', 'indefinite');
+        
+        wave.appendChild(animate);
+        wave.appendChild(animateOpacity);
+        waves.appendChild(wave);
+      }
+      
+      svg.appendChild(waves);
+    }
+
+    function cleanupAnimations() {
+      const burst = document.getElementById('thinkingBurst');
+      const waves = document.getElementById('speakingWaves');
+      if (burst) burst.remove();
+      if (waves) waves.remove();
     }
 
     // --- ENHANCED STARFIELD ---
@@ -1201,29 +1333,43 @@ Keep under 50 words, be conversational and encouraging.`;
         if (state.listening && !state.isSpeaking) {
           analyser.getByteFrequencyData(dataArray);
           
-          // Calculate volume for orb reactivity
+          // Calculate volume and frequency data for sophisticated visualization
           let volume = 0;
+          let highFreq = 0;
+          let midFreq = 0;
+          
           for (let i = 0; i < dataArray.length; i++) {
             volume += dataArray[i];
+            if (i > dataArray.length * 0.7) highFreq += dataArray[i];
+            if (i > dataArray.length * 0.3 && i < dataArray.length * 0.7) midFreq += dataArray[i];
           }
-          volume = volume / dataArray.length / 255; // Normalize to 0-1
           
-          // Update orb based on audio input
+          volume = volume / dataArray.length / 255;
+          highFreq = highFreq / (dataArray.length * 0.3) / 255;
+          midFreq = midFreq / (dataArray.length * 0.4) / 255;
+          
+          // Sophisticated orb reactivity
           const baseGlow = 15;
-          const glowIntensity = baseGlow + (volume * 20);
-          const pulseScale = 1 + (volume * 0.1);
+          const glowIntensity = baseGlow + (volume * 25);
+          const pulseScale = 1 + (volume * 0.15);
+          const colorShift = highFreq * 60; // Shift color based on frequency
           
-          elements.character.style.filter = `drop-shadow(0 0 ${glowIntensity}px var(--glow-color))`;
+          elements.character.style.filter = `
+            drop-shadow(0 0 ${glowIntensity}px hsl(${280 + colorShift}, 70%, 60%))
+            drop-shadow(0 0 ${glowIntensity * 0.5}px var(--glow-color))
+          `;
           elements.character.style.transform = `scale(${pulseScale})`;
           
-          // Make particles more active with audio
-          elements.particles.style.animationDuration = `${Math.max(2, 6 - volume * 4)}s`;
+          // Dynamic particle speed based on audio complexity
+          elements.particles.style.animationDuration = `${Math.max(1.5, 8 - volume * 6)}s`;
           
-          // Show face when there's significant audio input
-          if (volume > 0.1) {
-            elements.face.style.opacity = Math.min(0.8, volume * 2);
-          } else {
-            elements.face.style.opacity = '0';
+          // Adjust energy core intensity based on mid frequencies
+          elements.pulseRing1.style.opacity = Math.min(0.8, 0.3 + midFreq);
+          elements.pulseRing2.style.opacity = Math.min(0.6, 0.2 + midFreq * 0.8);
+          
+          // Update speech activity tracking
+          if (volume > 0.05) {
+            state.lastSpeechTime = Date.now();
           }
         } else if (!state.isSpeaking) {
           elements.character.style.filter = `drop-shadow(0 0 15px var(--glow-color))`;
@@ -1246,13 +1392,13 @@ Keep under 50 words, be conversational and encouraging.`;
     // Add some helpful tips
     setTimeout(() => {
       if (!state.listening) {
-        appendOutput("💡 <strong>Tip:</strong> Try explaining a concept you're learning about - I'll ask questions to help you understand it better!", 'system-text');
+        appendOutput("💡 <strong>Tip:</strong> I use intelligent pause detection - take your time explaining, and I'll wait for natural breaks before responding!", 'system-text');
       }
-    }, 3000);
+    }, 4000);
 
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
-      if (e.code === 'Space' && e.target.tagName !== 'SELECT') {
+      if (e.code === 'Space' && e.target.tagName !== 'SELECT' && e.target.tagName !== 'BUTTON') {
         e.preventDefault();
         elements.toggleBtn.click();
       }
@@ -1268,6 +1414,16 @@ Keep under 50 words, be conversational and encouraging.`;
     window.addEventListener('beforeunload', () => {
       if (state.recognition) state.recognition.stop();
       if (speechSynthesis.speaking) speechSynthesis.cancel();
+      clearTimeout(state.pauseTimer);
+      cleanupAnimations();
+    });
+
+    // Handle visibility changes (tab switching)
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && state.listening) {
+        // Pause listening when tab is not visible
+        console.log('Tab hidden, maintaining session but reducing activity');
+      }
     });
   </script>
 </body>
