@@ -1,0 +1,1827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Retro Voice Tutor - Enhanced</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+    :root {
+      --glow-color: #a020f0;
+      --main-text-color: #b084f5;
+      --border-color: #5a2ca0;
+      --bg-color: #000;
+      --char-face-color: #f5d6a3;
+      --char-hair-color: #2a1c10;
+      --success-color: #00ff88;
+      --warning-color: #ffaa00;
+      --error-color: #ff4444;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      background: var(--bg-color);
+      color: var(--main-text-color);
+      font-family: 'Press Start 2P', monospace;
+      overflow-x: hidden;
+    }
+
+    body {
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      text-align: center;
+      position: relative;
+      padding: 20px 0;
+    }
+
+    canvas#starfield {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+    }
+
+    #main-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      max-width: 90vw;
+      width: 100%;
+      z-index: 1;
+    }
+
+    #character {
+      width: 80px;
+      height: 80px;
+      filter: drop-shadow(0 0 15px var(--glow-color));
+      animation: float 4s ease-in-out infinite;
+      transition: all 0.3s ease;
+      z-index: 1;
+      position: relative;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-12px) scale(1.02); }
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { filter: drop-shadow(0 0 15px var(--glow-color)) drop-shadow(0 0 25px var(--glow-color)); }
+      50% { filter: drop-shadow(0 0 30px var(--glow-color)) drop-shadow(0 0 45px var(--glow-color)); }
+    }
+
+    @keyframes thinking-pulse {
+      0%, 100% { filter: drop-shadow(0 0 20px #ffaa00); }
+      50% { filter: drop-shadow(0 0 35px #ffaa00); }
+    }
+
+    @keyframes speaking-pulse {
+      0%, 100% { filter: drop-shadow(0 0 20px var(--success-color)); }
+      50% { filter: drop-shadow(0 0 35px var(--success-color)); }
+    }
+
+    .listening #character {
+      animation: float 4s ease-in-out infinite, pulse-glow 1.5s ease-in-out infinite;
+    }
+
+    .thinking #character {
+      animation: float 4s ease-in-out infinite, thinking-pulse 2s ease-in-out infinite;
+    }
+
+    .speaking #character {
+      animation: float 2s ease-in-out infinite, speaking-pulse 1s ease-in-out infinite;
+    }
+
+    #controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      z-index: 2;
+    }
+
+    button {
+      background: linear-gradient(135deg, rgba(160, 32, 240, 0.1), rgba(90, 44, 160, 0.2));
+      border: 2px solid var(--main-text-color);
+      color: var(--main-text-color);
+      padding: 12px 24px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 12px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 10px rgba(160, 32, 240, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+      transition: left 0.5s ease;
+    }
+
+    button:hover::before {
+      left: 100%;
+    }
+
+    button:hover {
+      background: linear-gradient(135deg, rgba(160, 32, 240, 0.3), rgba(90, 44, 160, 0.4));
+      color: #fff;
+      box-shadow: 0 0 25px var(--glow-color);
+      transform: translateY(-2px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+    
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    button:disabled:hover {
+      background: linear-gradient(135deg, rgba(160, 32, 240, 0.1), rgba(90, 44, 160, 0.2));
+      color: var(--main-text-color);
+      box-shadow: 0 0 10px rgba(160, 32, 240, 0.3);
+    }
+
+    select {
+      background: linear-gradient(135deg, rgba(20, 0, 40, 0.8), rgba(40, 0, 80, 0.6));
+      border: 2px solid var(--border-color);
+      color: var(--main-text-color);
+      padding: 10px 15px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border-radius: 4px;
+    }
+
+    select:hover, select:focus {
+      border-color: var(--main-text-color);
+      box-shadow: 0 0 15px rgba(160, 32, 240, 0.4);
+      outline: none;
+    }
+
+    #settings-panel {
+      display: flex;
+      gap: 30px;
+      padding: 20px 30px;
+      border: 2px solid var(--border-color);
+      background: linear-gradient(135deg, rgba(20, 0, 40, 0.8), rgba(40, 0, 80, 0.6));
+      border-radius: 8px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 0 20px rgba(160, 32, 240, 0.2);
+    }
+
+    .setting {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .setting label {
+      font-size: 9px;
+      color: #d9b3ff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    #indicators {
+      display: flex;
+      gap: 25px;
+      align-items: center;
+      justify-content: center;
+      min-height: 30px;
+      font-size: 11px;
+    }
+
+    .indicator {
+      display: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      border: 1px solid;
+      background: rgba(0, 0, 0, 0.6);
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    #listeningIndicator {
+      border-color: var(--success-color);
+      color: var(--success-color);
+      box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
+    }
+
+    #speakingIndicator {
+      border-color: var(--warning-color);
+      color: var(--warning-color);
+      box-shadow: 0 0 15px rgba(255, 170, 0, 0.3);
+    }
+
+    #thinkingIndicator {
+      border-color: var(--glow-color);
+      color: var(--glow-color);
+      box-shadow: 0 0 15px rgba(160, 32, 240, 0.3);
+    }
+
+    #waitingIndicator {
+      border-color: var(--warning-color);
+      color: var(--warning-color);
+      box-shadow: 0 0 15px rgba(255, 170, 0, 0.2);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.8; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.05); }
+    }
+
+    /* Enhanced CRT Effect */
+    .crt-container {
+      width: 90%;
+      max-width: 800px;
+      background: linear-gradient(135deg, rgba(10, 0, 20, 0.95), rgba(20, 0, 40, 0.9));
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      padding: 25px;
+      font-size: 11px;
+      text-shadow: 0 0 8px var(--glow-color);
+      overflow-y: auto;
+      line-height: 1.9;
+      position: relative;
+      z-index: 2;
+      box-shadow: 
+        0 0 30px rgba(160, 32, 240, 0.3),
+        inset 0 0 20px rgba(160, 32, 240, 0.1);
+      backdrop-filter: blur(5px);
+    }
+
+    .crt-container::before {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      background: 
+        repeating-linear-gradient(
+          to bottom, 
+          rgba(255, 255, 255, 0.03) 0px, 
+          rgba(255, 255, 255, 0.03) 1px, 
+          transparent 1px, 
+          transparent 3px
+        );
+      mix-blend-mode: overlay;
+      z-index: 3;
+      border-radius: 6px;
+    }
+
+    .crt-container::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(160, 32, 240, 0.02) 50%,
+        transparent 100%
+      );
+      animation: scan 3s linear infinite;
+      pointer-events: none;
+      z-index: 4;
+      border-radius: 6px;
+    }
+
+    @keyframes scan {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    #output {
+      height: 250px;
+      margin-bottom: 15px;
+    }
+
+    #interpretation {
+      height: 80px;
+      font-size: 10px;
+    }
+    
+    .prefix {
+      color: #fff;
+      font-weight: bold;
+      text-shadow: 0 0 10px currentColor;
+    }
+
+    .user-text {
+      color: var(--success-color);
+    }
+
+    .tutor-text {
+      color: var(--main-text-color);
+    }
+
+    .system-text {
+      color: var(--warning-color);
+      font-style: italic;
+    }
+
+    .error-text {
+      color: var(--error-color);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      #settings-panel {
+        flex-direction: column;
+        gap: 15px;
+        padding: 15px 20px;
+      }
+
+      .crt-container {
+        width: 95%;
+        padding: 20px;
+        font-size: 10px;
+      }
+
+      #character {
+        width: 70px;
+        height: 70px;
+      }
+
+      button {
+        padding: 10px 20px;
+        font-size: 10px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      #character {
+        width: 60px;
+        height: 60px;
+      }
+
+      .crt-container {
+        padding: 15px;
+        font-size: 9px;
+      }
+
+      #output {
+        height: 180px;
+      }
+
+      #interpretation {
+        height: 50px;
+      }
+
+      #main-container {
+        gap: 15px;
+      }
+    }
+
+    /* Loading Animation */
+    .loading {
+      position: relative;
+    }
+
+    .loading::after {
+      content: '';
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 12px;
+      height: 12px;
+      border: 2px solid transparent;
+      border-top: 2px solid var(--glow-color);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: translateY(-50%) rotate(0deg); }
+      100% { transform: translateY(-50%) rotate(360deg); }
+    }
+
+    /* Progress Bar */
+    #progress-bar {
+      width: 100%;
+      height: 4px;
+      background: rgba(160, 32, 240, 0.2);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    #progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--glow-color), var(--success-color));
+      width: 0%;
+      transition: width 0.3s ease;
+      box-shadow: 0 0 10px var(--glow-color);
+    }
+
+    /* Conversation Quality Indicator */
+    #quality-indicator {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 9px;
+      color: #888;
+      margin-top: 10px;
+    }
+
+    .quality-star {
+      color: #444;
+      transition: color 0.3s ease;
+    }
+
+    .quality-star.active {
+      color: var(--warning-color);
+      text-shadow: 0 0 5px var(--warning-color);
+    }
+
+    /* File Upload Area */
+    #file-upload-area {
+      width: 90%;
+      max-width: 600px;
+      min-height: 120px;
+      border: 3px dashed var(--border-color);
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(20, 0, 40, 0.6), rgba(40, 0, 80, 0.4));
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      position: relative;
+      backdrop-filter: blur(5px);
+    }
+
+    #file-upload-area:hover {
+      border-color: var(--glow-color);
+      background: linear-gradient(135deg, rgba(40, 0, 80, 0.7), rgba(60, 0, 120, 0.5));
+      box-shadow: 0 0 20px rgba(160, 32, 240, 0.3);
+    }
+
+    #file-upload-area.drag-over {
+      border-color: var(--success-color);
+      background: linear-gradient(135deg, rgba(0, 40, 20, 0.7), rgba(0, 80, 40, 0.5));
+      box-shadow: 0 0 30px rgba(0, 255, 136, 0.4);
+    }
+
+    #file-upload-area.has-file {
+      border-color: var(--success-color);
+      background: linear-gradient(135deg, rgba(0, 40, 20, 0.8), rgba(0, 80, 40, 0.6));
+    }
+
+    .upload-text {
+      font-size: 10px;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    .upload-icon {
+      font-size: 24px;
+      margin-bottom: 5px;
+    }
+
+    #file-info {
+      display: none;
+      font-size: 9px;
+      color: var(--success-color);
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    #remove-file {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: var(--error-color);
+      border: none;
+      color: white;
+      width: 25px;
+      height: 25px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 12px;
+      display: none;
+    }
+
+    #remove-file:hover {
+      background: #ff6666;
+    }
+
+    #hidden-file-input {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="starfield"></canvas>
+
+  <div id="main-container">
+    <!-- File Upload Area -->
+    <div id="file-upload-area">
+      <div class="upload-icon">📚</div>
+      <div class="upload-text">
+        <strong>Upload Your Textbook</strong><br/>
+        Drag & drop PDF, TXT, or DOCX files<br/>
+        <small>This helps me ask relevant questions from your material</small>
+      </div>
+      <button id="remove-file">×</button>
+      <div id="file-info"></div>
+    </div>
+    <input type="file" id="hidden-file-input" accept=".pdf,.txt,.docx,.doc" />
+
+    <div id="character">
+      <!-- Gender-neutral glowing orb character -->
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+        <defs>
+          <radialGradient id="orbGradient" cx="0.3" cy="0.3">
+            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9"/>
+            <stop offset="30%" stop-color="var(--glow-color)" stop-opacity="0.8"/>
+            <stop offset="70%" stop-color="var(--main-text-color)" stop-opacity="0.6"/>
+            <stop offset="100%" stop-color="#2a0040" stop-opacity="0.9"/>
+          </radialGradient>
+          <radialGradient id="coreGradient" cx="0.4" cy="0.3">
+            <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
+            <stop offset="50%" stop-color="var(--glow-color)" stop-opacity="0.9"/>
+            <stop offset="100%" stop-color="var(--main-text-color)" stop-opacity="0.7"/>
+          </radialGradient>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+            <feMerge> 
+              <feMergeNode in="coloredBlur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+        
+        <!-- Outer glow ring -->
+        <circle id="outerRing" cx="50" cy="50" r="45" fill="none" stroke="var(--glow-color)" stroke-width="2" opacity="0.4" filter="url(#glow)"/>
+        
+        <!-- Main orb body -->
+        <circle id="mainOrb" cx="50" cy="50" r="35" fill="url(#orbGradient)" filter="url(#glow)"/>
+        
+        <!-- Inner core -->
+        <circle id="innerCore" cx="50" cy="50" r="20" fill="url(#coreGradient)" opacity="0.8"/>
+        
+        <!-- Animated energy particles -->
+        <g id="particles">
+          <circle id="particle1" cx="30" cy="40" r="2" fill="var(--glow-color)" opacity="0.7">
+            <animateTransform attributeName="transform" type="rotate" values="0 50 50;360 50 50" dur="8s" repeatCount="indefinite"/>
+          </circle>
+          <circle id="particle2" cx="70" cy="35" r="1.5" fill="#ffffff" opacity="0.6">
+            <animateTransform attributeName="transform" type="rotate" values="0 50 50;-360 50 50" dur="12s" repeatCount="indefinite"/>
+          </circle>
+          <circle id="particle3" cx="45" cy="25" r="1" fill="var(--success-color)" opacity="0.5">
+            <animateTransform attributeName="transform" type="rotate" values="0 50 50;360 50 50" dur="6s" repeatCount="indefinite"/>
+          </circle>
+        </g>
+        
+        <!-- Modern energy core that pulses during interaction -->
+        <g id="energyCore">
+          <circle id="pulseRing1" cx="50" cy="50" r="25" fill="none" stroke="var(--glow-color)" stroke-width="1" opacity="0.3">
+            <animate attributeName="r" values="25;30;25" dur="2s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="0.3;0.1;0.3" dur="2s" repeatCount="indefinite"/>
+          </circle>
+          <circle id="pulseRing2" cx="50" cy="50" r="15" fill="none" stroke="#ffffff" stroke-width="0.5" opacity="0.2">
+            <animate attributeName="r" values="15;20;15" dur="1.5s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="0.2;0.05;0.2" dur="1.5s" repeatCount="indefinite"/>
+          </circle>
+        </g>
+      </svg>
+    </div>
+
+    <div id="controls">
+      <div id="progress-bar">
+        <div id="progress-fill"></div>
+      </div>
+      
+      <button id="toggleBtn">Start Teaching Session</button>
+      
+      <div id="settings-panel">
+        <div class="setting">
+          <label for="modeSelect">Teaching Mode</label>
+          <select id="modeSelect">
+            <option value="interactive">Interactive Q&A</option>
+            <option value="askBetween">Question Each Point</option>
+            <option value="askEnd">Question At End</option>
+            <option value="socratic">Socratic Method</option>
+            <option value="summary">Summary & Review</option>
+          </select>
+        </div>
+        <div class="setting">
+          <label for="accentSelect">Voice Accent</label>
+          <select id="accentSelect"></select>
+        </div>
+        <div class="setting">
+          <label for="difficultySelect">Difficulty</label>
+          <select id="difficultySelect">
+            <option value="beginner">Beginner</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="advanced">Advanced</option>
+          </select>
+        </div>
+      </div>
+      
+      <div id="indicators">
+        <div id="listeningIndicator" class="indicator">🎙️ Listening...</div>
+        <div id="waitingIndicator" class="indicator">⏳ Waiting for pause...</div>
+        <div id="thinkingIndicator" class="indicator">🧠 Thinking...</div>
+        <div id="speakingIndicator" class="indicator">🗣️ Speaking...</div>
+      </div>
+    </div>
+
+    <div id="output" class="crt-container">
+      <div class="system-text">🎓 Welcome to your Enhanced Retro Voice Tutor!</div>
+      <br/>
+      <strong>📚 Upload your textbook first</strong> for accurate, relevant questions, then press "Start Teaching Session" to begin learning with AI-powered questioning techniques.
+    </div>
+    
+    <div id="interpretation" class="crt-container">
+      <div id="quality-indicator">
+        <span>Conversation Quality:</span>
+        <span class="quality-star">★</span>
+        <span class="quality-star">★</span>
+        <span class="quality-star">★</span>
+        <span class="quality-star">★</span>
+        <span class="quality-star">★</span>
+      </div>
+      🤔 <strong>Analysis:</strong> <i>Ready to begin learning...</i>
+    </div>
+  </div>
+
+  <script>
+    // --- ENHANCED CONSTANTS ---
+    const API_KEY = "AIzaSyDSU9YUQVoFPftARc4TpEI4uUilvPcMOcc";
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+    const API_COOLDOWN_MS = 3000; // Reduced cooldown for better responsiveness
+
+    // --- DOM REFERENCES ---
+    const elements = {
+      character: document.getElementById('character'),
+      mainOrb: document.getElementById('mainOrb'),
+      innerCore: document.getElementById('innerCore'),
+      outerRing: document.getElementById('outerRing'),
+      energyCore: document.getElementById('energyCore'),
+      pulseRing1: document.getElementById('pulseRing1'),
+      pulseRing2: document.getElementById('pulseRing2'),
+      particles: document.getElementById('particles'),
+      toggleBtn: document.getElementById('toggleBtn'),
+      listeningIndicator: document.getElementById('listeningIndicator'),
+      waitingIndicator: document.getElementById('waitingIndicator'),
+      thinkingIndicator: document.getElementById('thinkingIndicator'),
+      speakingIndicator: document.getElementById('speakingIndicator'),
+      output: document.getElementById('output'),
+      modeSelect: document.getElementById('modeSelect'),
+      accentSelect: document.getElementById('accentSelect'),
+      difficultySelect: document.getElementById('difficultySelect'),
+      interpretationBox: document.getElementById('interpretation'),
+      progressFill: document.getElementById('progress-fill'),
+      qualityStars: document.querySelectorAll('.quality-star'),
+      fileUploadArea: document.getElementById('file-upload-area'),
+      hiddenFileInput: document.getElementById('hidden-file-input'),
+      fileInfo: document.getElementById('file-info'),
+      removeFileBtn: document.getElementById('remove-file')
+    };
+    
+    // --- ENHANCED STATE ---
+    let state = {
+      listening: false,
+      recognition: null,
+      voice: null,
+      transcriptLog: [],
+      conversationHistory: [],
+      isSpeaking: false,
+      apiOnCooldown: false,
+      lastProcessedTranscript: "",
+      currentTopic: "",
+      questionCount: 0,
+      conversationQuality: 0,
+      sessionStartTime: null,
+      blinkInterval: null,
+      lastSpeechTime: null,
+      pauseTimer: null,
+      currentTranscriptBuffer: "",
+      isProcessingPause: false,
+      silenceThreshold: 2500, // 2.5 seconds of silence before processing
+      minimumSpeechLength: 10, // Minimum characters before considering it complete
+      textbookContent: "", // Store uploaded textbook content
+      fileName: "",
+      hasTextbook: false
+    };
+
+    // --- BROWSER FEATURE DETECTION ---
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      appendOutput("⚠️ Voice recognition not supported. Please use Chrome, Edge, or Safari.", 'error-text');
+      elements.toggleBtn.disabled = true;
+    }
+
+    // --- EVENT LISTENERS ---
+    elements.toggleBtn.addEventListener('click', () => state.listening ? stopListening() : startListening());
+    elements.accentSelect.addEventListener('change', () => {
+      state.voice = speechSynthesis.getVoices().find(v => v.name === elements.accentSelect.value);
+    });
+
+    // File upload event listeners
+    elements.fileUploadArea.addEventListener('click', () => elements.hiddenFileInput.click());
+    elements.hiddenFileInput.addEventListener('change', handleFileSelect);
+    elements.removeFileBtn.addEventListener('click', removeFile);
+
+    // Drag and drop handlers
+    elements.fileUploadArea.addEventListener('dragover', handleDragOver);
+    elements.fileUploadArea.addEventListener('dragleave', handleDragLeave);
+    elements.fileUploadArea.addEventListener('drop', handleFileDrop);
+
+    // --- ENHANCED VOICE INITIALIZATION ---
+    function loadVoices() {
+      const voices = speechSynthesis.getVoices();
+      if (voices.length === 0) return; 
+      
+      const currentAccent = elements.accentSelect.value;
+      elements.accentSelect.innerHTML = '';
+      
+      // Prioritize better quality voices
+      const englishVoices = voices
+        .filter(v => v.lang.startsWith('en'))
+        .sort((a, b) => {
+          // Prefer Google voices, then native voices
+          if (a.name.includes('Google') && !b.name.includes('Google')) return -1;
+          if (!a.name.includes('Google') && b.name.includes('Google')) return 1;
+          return a.name.localeCompare(b.name);
+        });
+
+      englishVoices.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v.name;
+        opt.textContent = v.name.replace('Google', '').replace('Microsoft', '').trim() + ` (${v.lang})`;
+        elements.accentSelect.appendChild(opt);
+      });
+      
+      state.voice = voices.find(v => v.name === currentAccent) || 
+                   voices.find(v => v.name.includes('Google') && v.lang === 'en-US') ||
+                   voices.find(v => v.lang === 'en-US') || 
+                   voices.find(v => v.lang.startsWith('en')) || 
+                   voices[0];
+      
+      if (state.voice) elements.accentSelect.value = state.voice.name;
+    }
+
+    loadVoices();
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+      speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    // --- FILE UPLOAD HANDLING ---
+    function handleDragOver(e) {
+      e.preventDefault();
+      elements.fileUploadArea.classList.add('drag-over');
+    }
+
+    function handleDragLeave(e) {
+      e.preventDefault();
+      elements.fileUploadArea.classList.remove('drag-over');
+    }
+
+    function handleFileDrop(e) {
+      e.preventDefault();
+      elements.fileUploadArea.classList.remove('drag-over');
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        processFile(files[0]);
+      }
+    }
+
+    function handleFileSelect(e) {
+      const files = e.target.files;
+      if (files.length > 0) {
+        processFile(files[0]);
+      }
+    }
+
+    async function processFile(file) {
+      const maxSize = 10 * 1024 * 1024; // 10MB limit
+      if (file.size > maxSize) {
+        appendOutput("⚠️ File too large. Please use files under 10MB.", 'error-text');
+        return;
+      }
+
+      state.fileName = file.name;
+      elements.fileUploadArea.classList.add('has-file');
+      elements.removeFileBtn.style.display = 'block';
+      
+      appendOutput(`📚 <strong>Processing:</strong> ${file.name}...`, 'system-text');
+
+      try {
+        let content = '';
+        
+        if (file.type === 'text/plain') {
+          content = await readTextFile(file);
+        } else if (file.type === 'application/pdf') {
+          content = await extractPDFText(file);
+        } else if (file.name.endsWith('.docx') || file.name.endsWith('.doc')) {
+          content = await extractDocText(file);
+        } else {
+          // Try to read as text anyway
+          content = await readTextFile(file);
+        }
+
+        if (content.trim().length < 50) {
+          appendOutput("⚠️ File appears to be empty or couldn't be read properly.", 'error-text');
+          removeFile();
+          return;
+        }
+
+        // Process and store textbook content
+        state.textbookContent = preprocessTextbookContent(content);
+        state.hasTextbook = true;
+
+        elements.fileInfo.style.display = 'block';
+        elements.fileInfo.innerHTML = `✅ <strong>${file.name}</strong><br/>
+          ${Math.round(content.length / 1000)}k characters loaded<br/>
+          <small>AI will now reference this material</small>`;
+
+        elements.fileUploadArea.querySelector('.upload-text').innerHTML = `
+          <strong>Textbook Loaded!</strong><br/>
+          ${file.name}<br/>
+          <small>Questions will be based on your material</small>
+        `;
+
+        appendOutput(`✅ <strong>Textbook loaded successfully!</strong> I'll now ask questions relevant to your study material.`, 'system-text');
+
+      } catch (error) {
+        console.error('File processing error:', error);
+        appendOutput(`⚠️ Error processing ${file.name}. Please try a different file format.`, 'error-text');
+        removeFile();
+      }
+    }
+
+    async function readTextFile(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.onerror = reject;
+        reader.readAsText(file);
+      });
+    }
+
+    async function extractPDFText(file) {
+      appendOutput("📄 Extracting text from PDF...", 'system-text');
+      
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        
+        let fullText = '';
+        const maxPages = Math.min(pdf.numPages, 50); // Limit to 50 pages for performance
+        
+        for (let i = 1; i <= maxPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map(item => item.str).join(' ');
+          fullText += pageText + '\n';
+          
+          // Show progress
+          if (i % 5 === 0) {
+            appendOutput(`📄 Processing page ${i}/${maxPages}...`, 'system-text');
+          }
+        }
+        
+        if (fullText.trim().length < 50) {
+          throw new Error("PDF appears to contain no readable text");
+        }
+        
+        return fullText;
+      } catch (error) {
+        console.error('PDF extraction error:', error);
+        appendOutput("⚠️ PDF extraction failed. Please try converting to TXT format for best results.", 'error-text');
+        throw error;
+      }
+    }
+
+    async function extractDocText(file) {
+      // For DOCX extraction, we'll use a simple approach
+      // In a production app, you'd use mammoth.js or similar
+      appendOutput("📄 DOCX detected. For best results, try converting to TXT format first.", 'system-text');
+      
+      // Fallback: try to read as text
+      try {
+        return await readTextFile(file);
+      } catch {
+        throw new Error("DOCX text extraction not available. Please convert to TXT format.");
+      }
+    }
+
+    function removeFile() {
+      state.textbookContent = "";
+      state.fileName = "";
+      state.hasTextbook = false;
+      
+      elements.fileUploadArea.classList.remove('has-file');
+      elements.removeFileBtn.style.display = 'none';
+      elements.fileInfo.style.display = 'none';
+      elements.hiddenFileInput.value = '';
+      
+      elements.fileUploadArea.querySelector('.upload-text').innerHTML = `
+        <strong>Upload Your Textbook</strong><br/>
+        Drag & drop PDF, TXT, or DOCX files<br/>
+        <small>This helps me ask relevant questions from your material</small>
+      `;
+      
+      appendOutput("📚 Textbook removed. I'll now ask general questions.", 'system-text');
+    }
+
+    function preprocessTextbookContent(content) {
+      // Clean and optimize textbook content for AI processing
+      let processed = content
+        .replace(/\s+/g, ' ') // Normalize whitespace
+        .replace(/\n{3,}/g, '\n\n') // Reduce excessive line breaks
+        .trim();
+      
+      // Extract key sections (chapters, headings, definitions)
+      const sections = [];
+      const lines = processed.split('\n');
+      let currentSection = '';
+      
+      for (let line of lines) {
+        line = line.trim();
+        if (!line) continue;
+        
+        // Detect headings/chapters (simple heuristic)
+        if (line.length < 100 && (
+          line.toUpperCase() === line || 
+          /^(chapter|section|\d+\.|\d+\.\d+)/i.test(line) ||
+          line.endsWith(':')
+        )) {
+          if (currentSection.trim()) {
+            sections.push(currentSection.trim());
+          }
+          currentSection = line + '\n';
+        } else {
+          currentSection += line + ' ';
+        }
+        
+        // Limit total length for API efficiency
+        if (sections.join('\n').length > 6000) {
+          break;
+        }
+      }
+      
+      if (currentSection.trim()) {
+        sections.push(currentSection.trim());
+      }
+      
+      return sections.join('\n\n').substring(0, 7000); // Final limit
+    }
+
+    function findRelevantContext(transcript) {
+      if (!state.hasTextbook || !state.textbookContent) {
+        return "";
+      }
+      
+      // Simple keyword matching to find relevant sections
+      const keywords = transcript.toLowerCase().split(' ').filter(word => word.length > 3);
+      const sections = state.textbookContent.split('\n\n');
+      const relevantSections = [];
+      
+      for (let section of sections) {
+        const sectionLower = section.toLowerCase();
+        let relevanceScore = 0;
+        
+        for (let keyword of keywords) {
+          if (sectionLower.includes(keyword)) {
+            relevanceScore++;
+          }
+        }
+        
+        if (relevanceScore > 0) {
+          relevantSections.push({ section, score: relevanceScore });
+        }
+      }
+      
+      // Return top 2 most relevant sections
+      return relevantSections
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 2)
+        .map(item => item.section)
+        .join('\n\n');
+    }
+
+    // --- ENHANCED SPEECH RECOGNITION ---
+    function startListening() {
+      if (!SpeechRecognition) return;
+      
+      state.recognition = new SpeechRecognition();
+      Object.assign(state.recognition, { 
+        lang: 'en-US', 
+        continuous: true, 
+        interimResults: true, // Enable interim results for better pause detection
+        maxAlternatives: 1
+      });
+
+      state.recognition.onresult = handleRecognitionResult;
+      state.recognition.onerror = handleRecognitionError;
+      state.recognition.onend = () => {
+        if (state.listening) {
+          setTimeout(() => state.recognition.start(), 100);
+        }
+      };
+
+      state.recognition.start();
+      state.listening = true;
+      state.sessionStartTime = Date.now();
+      state.lastSpeechTime = Date.now();
+      
+      elements.toggleBtn.textContent = 'End Session';
+      elements.listeningIndicator.style.display = 'block';
+      document.body.classList.add('listening');
+      
+      updateProgress(10);
+      appendOutput("🎓 <strong>Session started!</strong> Take your time explaining - I'll wait for natural pauses.", 'system-text');
+      startPauseDetection();
+    }
+
+    function handleRecognitionError(event) {
+      console.error("Speech recognition error:", event.error);
+      if (event.error === 'no-speech') {
+        // Don't show error for no-speech, just continue listening
+        return;
+      }
+      appendOutput(`⚠️ Recognition error: ${event.error}. Continuing to listen...`, 'error-text');
+    }
+
+    async function handleRecognitionResult(event) {
+      const lastResult = event.results[event.results.length - 1];
+      const transcript = lastResult[0].transcript.trim();
+      const isFinal = lastResult.isFinal;
+      
+      // Update speech timing
+      state.lastSpeechTime = Date.now();
+      
+      if (isFinal) {
+        // Add to transcript buffer
+        if (transcript.length > 3 && !state.currentTranscriptBuffer.includes(transcript)) {
+          state.currentTranscriptBuffer += (state.currentTranscriptBuffer ? ' ' : '') + transcript;
+          
+          // Reset pause timer since we got new speech
+          clearTimeout(state.pauseTimer);
+          
+          // Start new pause timer
+          state.pauseTimer = setTimeout(() => {
+            processCompleteTranscript();
+          }, state.silenceThreshold);
+          
+          // Show interim feedback and waiting indicator
+          elements.interpretationBox.innerHTML = `🎙️ <strong>Listening:</strong> <i>${state.currentTranscriptBuffer.slice(-50)}${state.currentTranscriptBuffer.length > 50 ? '...' : ''}</i>`;
+          elements.waitingIndicator.style.display = 'block';
+          elements.listeningIndicator.style.display = 'none';
+        }
+      }
+    }
+
+    async function processCompleteTranscript() {
+      if (state.isProcessingPause || 
+          state.isSpeaking || 
+          state.apiOnCooldown ||
+          state.currentTranscriptBuffer.length < state.minimumSpeechLength) {
+        return;
+      }
+      
+      const transcript = state.currentTranscriptBuffer.trim();
+      
+      // Prevent duplicate processing
+      if (transcript === state.lastProcessedTranscript) {
+        return;
+      }
+      
+      state.isProcessingPause = true;
+      state.lastProcessedTranscript = transcript;
+      state.apiOnCooldown = true;
+      setTimeout(() => state.apiOnCooldown = false, API_COOLDOWN_MS);
+
+      // Clear the buffer
+      state.currentTranscriptBuffer = "";
+      
+      state.transcriptLog.push(transcript);
+      state.conversationHistory.push({ role: 'user', content: transcript, timestamp: Date.now() });
+      
+      appendOutput(`<span class="prefix">You:</span> <span class="user-text">${transcript}</span>`);
+      elements.waitingIndicator.style.display = 'none';
+      setThinkingState();
+      
+      updateProgress(Math.min(90, 20 + state.questionCount * 15));
+
+      try {
+        // Process with AI
+        const [interpretation, response] = await Promise.all([
+          generateInterpretation(transcript),
+          shouldGenerateResponse() ? generateEnhancedResponse(transcript) : Promise.resolve(null)
+        ]);
+
+        showInterpretation(interpretation);
+        
+        if (response) {
+          state.conversationHistory.push({ role: 'assistant', content: response, timestamp: Date.now() });
+          reply(response);
+          state.questionCount++;
+          updateConversationQuality();
+        } else {
+          setIdleState();
+        }
+      } catch (error) {
+        console.error("Error during AI processing:", error);
+        reply("I had some trouble processing that. Could you try explaining it again?");
+      } finally {
+        state.isProcessingPause = false;
+      }
+    }
+
+    function startPauseDetection() {
+      // Monitor for natural conversation pauses
+      const pauseMonitor = setInterval(() => {
+        if (!state.listening) {
+          clearInterval(pauseMonitor);
+          return;
+        }
+        
+        const timeSinceLastSpeech = Date.now() - (state.lastSpeechTime || Date.now());
+        
+        // If there's been a long pause and we have content to process
+        if (timeSinceLastSpeech > state.silenceThreshold && 
+            state.currentTranscriptBuffer.length >= state.minimumSpeechLength &&
+            !state.isProcessingPause &&
+            !state.isSpeaking &&
+            !state.apiOnCooldown) {
+          processCompleteTranscript();
+        }
+      }, 500);
+    }
+
+    function shouldGenerateResponse() {
+      const mode = elements.modeSelect.value;
+      return mode === 'interactive' || mode === 'askBetween' || mode === 'socratic';
+    }
+
+    function stopListening() {
+      if (state.recognition) state.recognition.stop();
+      state.listening = false;
+      
+      // Clear any pending timers
+      clearTimeout(state.pauseTimer);
+      
+      elements.toggleBtn.textContent = 'Start Teaching Session';
+      elements.listeningIndicator.style.display = 'none';
+      document.body.classList.remove('listening');
+      cleanupAnimations();
+      setIdleState();
+
+      updateProgress(100);
+
+      // Process any remaining transcript buffer
+      if (state.currentTranscriptBuffer.length >= state.minimumSpeechLength) {
+        processCompleteTranscript();
+      }
+
+      const mode = elements.modeSelect.value;
+      if ((mode === 'askEnd' || mode === 'summary') && state.transcriptLog.length > 0) {
+        appendOutput('<span class="prefix">Tutor:</span> <span class="tutor-text">Let me provide a comprehensive summary and final questions...</span>');
+        setSpeakingState();
+        
+        const sessionData = {
+          transcript: state.transcriptLog.join(". "),
+          duration: Math.round((Date.now() - state.sessionStartTime) / 1000 / 60),
+          questionCount: state.questionCount,
+          mode: mode
+        };
+        
+        generateSessionSummary(sessionData).then(reply);
+        
+        // Reset session data
+        state.transcriptLog = [];
+        state.conversationHistory = [];
+        state.questionCount = 0;
+        state.currentTranscriptBuffer = "";
+        state.lastProcessedTranscript = "";
+      }
+    }
+
+    // --- ENHANCED AI SYSTEM ---
+    async function generateInterpretation(transcript) {
+      try {
+        let prompt = `Analyze this student's explanation in 6 words or less, focusing on the main concept: "${transcript}"`;
+        
+        if (state.hasTextbook) {
+          prompt = `Based on the textbook context, analyze this student's explanation in 6 words or less: "${transcript}"
+          
+Reference material: ${state.textbookContent.substring(0, 1000)}...`;
+        }
+        
+        return await queryGemini(prompt);
+      } catch (error) {
+        console.error("Interpretation error:", error);
+        return "Understanding your explanation...";
+      }
+    }
+
+    async function generateEnhancedResponse(transcript) {
+      try {
+        const difficulty = elements.difficultySelect.value;
+        const mode = elements.modeSelect.value;
+        const conversationContext = state.conversationHistory.slice(-4); // Last 2 exchanges
+        
+        let prompt = buildEnhancedPrompt(transcript, mode, difficulty, conversationContext);
+        return await queryGemini(prompt);
+      } catch (error) {
+        console.error("Response generation error:", error);
+        return "That's interesting! Can you tell me more about that specific part?";
+      }
+    }
+
+    function buildEnhancedPrompt(transcript, mode, difficulty, conversationContext) {
+      let contextStr = "";
+      if (conversationContext.length > 0) {
+        contextStr = "Previous conversation: " + 
+          conversationContext.map(msg => `${msg.role}: ${msg.content}`).join(' | ') + '\n\n';
+      }
+
+      // Add relevant textbook context if available
+      let textbookContext = "";
+      if (state.hasTextbook && state.textbookContent) {
+        const relevantContent = findRelevantContext(transcript);
+        if (relevantContent) {
+          textbookContext = `RELEVANT TEXTBOOK SECTIONS (base your questions on this material):\n${relevantContent}\n\n`;
+        } else {
+          // Fallback to first part of textbook if no specific match
+          textbookContext = `TEXTBOOK CONTEXT (keep questions within this scope):\n${state.textbookContent.substring(0, 2000)}...\n\n`;
+        }
+      }
+      
+      const modeInstructions = {
+        'interactive': 'Ask one follow-up question to deepen understanding.',
+        'askBetween': 'Ask a clarifying question about their explanation.',
+        'socratic': 'Guide them to discover answers through questioning. Never give direct answers.',
+        'askEnd': 'Provide comprehensive questioning after their explanation.',
+        'summary': 'Summarize and ask strategic follow-up questions.'
+      };
+
+      const difficultyLevels = {
+        'beginner': 'Use simple language and ask foundational questions.',
+        'intermediate': 'Ask about connections and applications.',
+        'advanced': 'Push for deep analysis and underlying principles.'
+      };
+
+      const textbookInstruction = state.hasTextbook ? 
+        "CRITICAL: Only ask questions that relate directly to the textbook material above. Do not go beyond the scope of the uploaded content. If the student mentions something not in the textbook, gently redirect them back to the material." : 
+        "";
+
+      return `You are a friendly tutor using the Feynman technique. ${modeInstructions[mode]} ${difficultyLevels[difficulty]}
+
+${textbookContext}${contextStr}Student said: "${transcript}"
+
+${textbookInstruction}
+
+Respond in under 35 words with one thoughtful question. Be encouraging and conversational.`;
+    }
+
+    async function generateSessionSummary(sessionData) {
+      try {
+        const prompt = `Session wrap-up: Student spent ${sessionData.duration} minutes explaining "${sessionData.transcript}". 
+
+Provide: 1) Brief encouraging summary 2) One insight about their understanding 3) One question for further exploration. 
+
+Keep under 50 words, be conversational and encouraging.`;
+
+        return await queryGemini(prompt);
+      } catch (error) {
+        console.error("Session summary error:", error);
+        return `Great session! You covered some interesting points in ${sessionData.duration} minutes. What aspect would you like to explore further next time?`;
+      }
+    }
+
+    // --- ENHANCED API COMMUNICATION ---
+    async function queryGemini(prompt) {
+      try {
+        const payload = {
+          contents: [{ 
+            parts: [{ text: prompt }] 
+          }],
+          generationConfig: {
+            temperature: 0.8,
+            topP: 0.9,
+            topK: 40,
+            maxOutputTokens: 100,
+            stopSequences: []
+          },
+          safetySettings: [
+            {
+              category: "HARM_CATEGORY_HARASSMENT",
+              threshold: "BLOCK_MEDIUM_AND_ABOVE"
+            },
+            {
+              category: "HARM_CATEGORY_HATE_SPEECH", 
+              threshold: "BLOCK_MEDIUM_AND_ABOVE"
+            },
+            {
+              category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+              threshold: "BLOCK_MEDIUM_AND_ABOVE"
+            },
+            {
+              category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+              threshold: "BLOCK_MEDIUM_AND_ABOVE"
+            }
+          ]
+        };
+
+        const response = await fetch(API_URL, { 
+          method: 'POST', 
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }, 
+          body: JSON.stringify(payload) 
+        });
+        
+        if (!response.ok) {
+          let errorMessage = `HTTP ${response.status}`;
+          try {
+            const errorBody = await response.json();
+            errorMessage = errorBody.error?.message || errorMessage;
+          } catch (e) {
+            // If we can't parse error JSON, use status text
+            errorMessage = response.statusText || errorMessage;
+          }
+          throw new Error(errorMessage);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.candidates || data.candidates.length === 0) {
+          throw new Error("No response candidates received");
+        }
+        
+        const candidate = data.candidates[0];
+        if (candidate.finishReason === 'SAFETY') {
+          throw new Error("Response blocked by safety filters");
+        }
+        
+        const text = candidate.content?.parts?.[0]?.text;
+        if (!text || text.trim().length === 0) {
+          throw new Error("Empty response received");
+        }
+        
+        return text.trim();
+      } catch (error) {
+        console.error("API Error:", error);
+        throw error;
+      }
+    }
+
+    // --- ENHANCED UI FUNCTIONS ---
+    function appendOutput(html, className = '') {
+      const wrapper = className ? `<span class="${className}">` : '';
+      const endWrapper = className ? '</span>' : '';
+      elements.output.innerHTML += `${wrapper}${html}${endWrapper}<br/><br/>`;
+      elements.output.scrollTop = elements.output.scrollHeight;
+    }
+
+    function showInterpretation(interpretation) {
+      // Extract topic if this is the first substantial input
+      if (!state.currentTopic && interpretation.length > 5) {
+        state.currentTopic = interpretation;
+      }
+      
+      const contextIndicator = state.hasTextbook ? "📚 " : "🤔 ";
+      const contextLabel = state.hasTextbook ? "Textbook Analysis" : "Analysis";
+      
+      elements.interpretationBox.innerHTML = `${contextIndicator} <strong>${contextLabel}:</strong> <i>${interpretation}</i>`;
+    }
+
+    function updateProgress(percentage) {
+      elements.progressFill.style.width = `${Math.min(100, percentage)}%`;
+    }
+
+    function updateConversationQuality() {
+      // Simple quality metric based on engagement
+      const baseQuality = Math.min(5, Math.floor(state.questionCount / 2) + 1);
+      const timeBonus = state.sessionStartTime ? Math.min(2, Math.floor((Date.now() - state.sessionStartTime) / 60000)) : 0;
+      state.conversationQuality = Math.min(5, baseQuality + timeBonus);
+      
+      elements.qualityStars.forEach((star, index) => {
+        star.classList.toggle('active', index < state.conversationQuality);
+      });
+    }
+
+    // --- ENHANCED TTS & ANIMATION ---
+    function reply(text) {
+      appendOutput(`<span class="prefix">Tutor:</span> <span class="tutor-text">${text}</span>`);
+      setSpeakingState();
+      speak(text, () => {
+        cleanupAnimations();
+        setIdleState();
+        elements.speakingIndicator.style.display = 'none';
+        document.body.classList.remove('speaking');
+      });
+    }
+
+    function speak(text, callback) {
+      if (speechSynthesis.speaking) {
+        speechSynthesis.cancel();
+      }
+      
+      setTimeout(() => {
+        state.isSpeaking = true;
+        elements.speakingIndicator.style.display = 'block';
+        document.body.classList.add('speaking');
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        if (state.voice) utterance.voice = state.voice;
+        
+        // Enhanced speech parameters for better quality
+        utterance.rate = 0.9;
+        utterance.pitch = 1.1;
+        utterance.volume = 0.8;
+        
+        utterance.onend = () => { 
+          state.isSpeaking = false; 
+          if (callback) callback(); 
+        };
+        utterance.onerror = (e) => {
+          if (e.error !== 'interrupted') {
+            console.error("Speech synthesis error:", e.error);
+          }
+          state.isSpeaking = false;
+          if (callback) callback();
+        };
+        
+        speechSynthesis.speak(utterance);
+      }, 150);
+    }
+
+    // --- ENHANCED CHARACTER ANIMATIONS ---
+    function setIdleState() {
+      document.body.className = '';
+      elements.thinkingIndicator.style.display = 'none';
+      
+      // Reset orb to calm state
+      elements.outerRing.style.opacity = '0.4';
+      elements.innerCore.style.opacity = '0.7';
+      
+      // Slow, calm particle animation
+      elements.particles.style.animationDuration = '10s';
+      
+      // Gentle energy core pulse
+      elements.pulseRing1.style.animationDuration = '3s';
+      elements.pulseRing2.style.animationDuration = '2.5s';
+    }
+
+    function setThinkingState() {
+      document.body.className = 'thinking';
+      elements.thinkingIndicator.style.display = 'block';
+      elements.listeningIndicator.style.display = 'none';
+      
+      // Intensify thinking energy
+      elements.outerRing.style.opacity = '0.8';
+      elements.innerCore.style.opacity = '1';
+      
+      // Faster particles for active thinking
+      elements.particles.style.animationDuration = '4s';
+      
+      // Rapid energy core pulse
+      elements.pulseRing1.style.animationDuration = '1s';
+      elements.pulseRing2.style.animationDuration = '0.8s';
+      
+      // Add thinking particle burst effect
+      createThinkingBurst();
+    }
+
+    function setSpeakingState() {
+      document.body.className = 'speaking';
+      elements.thinkingIndicator.style.display = 'none';
+      
+      // Maximum energy for speaking
+      elements.outerRing.style.opacity = '1';
+      elements.innerCore.style.opacity = '1';
+      
+      // Very active particles
+      elements.particles.style.animationDuration = '1.5s';
+      
+      // Intense energy core pulse
+      elements.pulseRing1.style.animationDuration = '0.5s';
+      elements.pulseRing2.style.animationDuration = '0.3s';
+      
+      // Create speaking energy waves
+      createSpeakingWaves();
+    }
+
+    function createThinkingBurst() {
+      // Add temporary thinking particles
+      const svg = elements.character.querySelector('svg');
+      const burst = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      burst.id = 'thinkingBurst';
+      
+      for (let i = 0; i < 6; i++) {
+        const particle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        const angle = (i / 6) * Math.PI * 2;
+        const x = 50 + Math.cos(angle) * 25;
+        const y = 50 + Math.sin(angle) * 25;
+        
+        particle.setAttribute('cx', x);
+        particle.setAttribute('cy', y);
+        particle.setAttribute('r', '1');
+        particle.setAttribute('fill', '#ffaa00');
+        particle.setAttribute('opacity', '0.8');
+        
+        const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animateTransform');
+        animate.setAttribute('attributeName', 'transform');
+        animate.setAttribute('type', 'translate');
+        animate.setAttribute('values', `0 0; ${Math.cos(angle) * 15} ${Math.sin(angle) * 15}`);
+        animate.setAttribute('dur', '1s');
+        animate.setAttribute('repeatCount', 'indefinite');
+        
+        particle.appendChild(animate);
+        burst.appendChild(particle);
+      }
+      
+      svg.appendChild(burst);
+      
+      // Remove after thinking is done
+      setTimeout(() => {
+        const existingBurst = document.getElementById('thinkingBurst');
+        if (existingBurst) existingBurst.remove();
+      }, 3000);
+    }
+
+    function createSpeakingWaves() {
+      // Add temporary speaking wave effects
+      const svg = elements.character.querySelector('svg');
+      const waves = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      waves.id = 'speakingWaves';
+      
+      for (let i = 0; i < 3; i++) {
+        const wave = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        wave.setAttribute('cx', '50');
+        wave.setAttribute('cy', '50');
+        wave.setAttribute('r', '40');
+        wave.setAttribute('fill', 'none');
+        wave.setAttribute('stroke', 'var(--success-color)');
+        wave.setAttribute('stroke-width', '1');
+        wave.setAttribute('opacity', '0');
+        
+        const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+        animate.setAttribute('attributeName', 'r');
+        animate.setAttribute('values', '35;50;65');
+        animate.setAttribute('dur', '1.5s');
+        animate.setAttribute('begin', `${i * 0.3}s`);
+        animate.setAttribute('repeatCount', 'indefinite');
+        
+        const animateOpacity = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+        animateOpacity.setAttribute('attributeName', 'opacity');
+        animateOpacity.setAttribute('values', '0;0.6;0');
+        animateOpacity.setAttribute('dur', '1.5s');
+        animateOpacity.setAttribute('begin', `${i * 0.3}s`);
+        animateOpacity.setAttribute('repeatCount', 'indefinite');
+        
+        wave.appendChild(animate);
+        wave.appendChild(animateOpacity);
+        waves.appendChild(wave);
+      }
+      
+      svg.appendChild(waves);
+    }
+
+    function cleanupAnimations() {
+      const burst = document.getElementById('thinkingBurst');
+      const waves = document.getElementById('speakingWaves');
+      if (burst) burst.remove();
+      if (waves) waves.remove();
+    }
+
+    // --- ENHANCED STARFIELD ---
+    const canvas = document.getElementById('starfield');
+    const ctx = canvas.getContext('2d');
+    let stars = [];
+    let animationSpeed = 1;
+
+    function resize() {
+      // Ensure canvas covers the full viewport and beyond for scrolling
+      canvas.width = window.innerWidth;
+      canvas.height = Math.max(window.innerHeight, document.body.scrollHeight);
+      
+      stars = Array.from({ length: 500 }, () => ({
+        x: (Math.random() - 0.5) * canvas.width * 2,
+        y: (Math.random() - 0.5) * canvas.height * 2,
+        z: Math.random() * canvas.width,
+        originalZ: Math.random() * canvas.width
+      }));
+    }
+
+    window.addEventListener('resize', resize);
+    
+    // Also resize when content changes (scrollHeight changes)
+    const resizeObserver = new ResizeObserver(() => {
+      const newHeight = Math.max(window.innerHeight, document.body.scrollHeight);
+      if (canvas.height !== newHeight) {
+        resize();
+      }
+    });
+    resizeObserver.observe(document.body);
+
+    function draw() {
+      // Dynamic speed based on state
+      if (state.listening) animationSpeed = 2;
+      else if (state.isSpeaking) animationSpeed = 1.5;
+      else animationSpeed = 1;
+
+      // Clear entire canvas with pure black (no transparency)
+      ctx.fillStyle = 'black';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      ctx.save();
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      
+      stars.forEach(star => {
+        star.z -= animationSpeed;
+        if (star.z <= 0) {
+          star.z = canvas.width;
+          star.x = (Math.random() - 0.5) * canvas.width * 2;
+          star.y = (Math.random() - 0.5) * canvas.height * 2;
+        }
+        
+        let k = 256.0 / star.z;
+        let sx = star.x * k, sy = star.y * k;
+        
+        // Expand visible area to cover entire canvas
+        if (Math.abs(sx) < canvas.width && Math.abs(sy) < canvas.height) {
+          let size = (1 - star.z / canvas.width) * 3;
+          let alpha = (1 - star.z / canvas.width) * 0.9;
+          
+          // Color variation based on state
+          if (state.listening) {
+            ctx.fillStyle = `rgba(0, 255, 136, ${alpha})`;
+          } else if (state.isSpeaking) {
+            ctx.fillStyle = `rgba(255, 170, 0, ${alpha})`;
+          } else {
+            ctx.fillStyle = `rgba(176, 132, 245, ${alpha})`;
+          }
+          
+          ctx.fillRect(sx - size/2, sy - size/2, size, size);
+        }
+      });
+      
+      ctx.restore();
+      requestAnimationFrame(draw);
+    }
+
+    resize();
+    draw();
+
+    // --- ENHANCED MICROPHONE VISUALIZATION ---
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const analyser = audioCtx.createAnalyser();
+      const source = audioCtx.createMediaStreamSource(stream);
+      source.connect(analyser);
+      
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.7;
+      
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      
+      function updateVisualization() {
+        if (state.listening && !state.isSpeaking) {
+          analyser.getByteFrequencyData(dataArray);
+          
+          // Calculate volume and frequency data for sophisticated visualization
+          let volume = 0;
+          let highFreq = 0;
+          let midFreq = 0;
+          
+          for (let i = 0; i < dataArray.length; i++) {
+            volume += dataArray[i];
+            if (i > dataArray.length * 0.7) highFreq += dataArray[i];
+            if (i > dataArray.length * 0.3 && i < dataArray.length * 0.7) midFreq += dataArray[i];
+          }
+          
+          volume = volume / dataArray.length / 255;
+          highFreq = highFreq / (dataArray.length * 0.3) / 255;
+          midFreq = midFreq / (dataArray.length * 0.4) / 255;
+          
+          // Sophisticated orb reactivity
+          const baseGlow = 15;
+          const glowIntensity = baseGlow + (volume * 25);
+          const pulseScale = 1 + (volume * 0.15);
+          const colorShift = highFreq * 60; // Shift color based on frequency
+          
+          elements.character.style.filter = `
+            drop-shadow(0 0 ${glowIntensity}px hsl(${280 + colorShift}, 70%, 60%))
+            drop-shadow(0 0 ${glowIntensity * 0.5}px var(--glow-color))
+          `;
+          elements.character.style.transform = `scale(${pulseScale})`;
+          
+          // Dynamic particle speed based on audio complexity
+          elements.particles.style.animationDuration = `${Math.max(1.5, 8 - volume * 6)}s`;
+          
+          // Adjust energy core intensity based on mid frequencies
+          elements.pulseRing1.style.opacity = Math.min(0.8, 0.3 + midFreq);
+          elements.pulseRing2.style.opacity = Math.min(0.6, 0.2 + midFreq * 0.8);
+          
+          // Update speech activity tracking
+          if (volume > 0.05) {
+            state.lastSpeechTime = Date.now();
+          }
+        } else if (!state.isSpeaking) {
+          elements.character.style.filter = `drop-shadow(0 0 15px var(--glow-color))`;
+          elements.character.style.transform = 'scale(1)';
+        }
+        
+        requestAnimationFrame(updateVisualization);
+      }
+      updateVisualization();
+    }).catch(err => {
+      console.error("Microphone access denied:", err);
+      appendOutput("⚠️ Microphone access required for voice features. Please allow access and refresh.", 'error-text');
+    });
+
+    // --- INITIALIZATION ---
+    setIdleState();
+    updateProgress(0);
+    updateConversationQuality();
+
+    // Add some helpful tips
+    setTimeout(() => {
+      if (!state.listening && !state.hasTextbook) {
+        appendOutput("💡 <strong>Tip:</strong> Upload your textbook above to get questions that match your study material exactly!", 'system-text');
+      }
+    }, 4000);
+
+    setTimeout(() => {
+      if (!state.listening) {
+        appendOutput("🕐 <strong>Note:</strong> I use intelligent pause detection - take your time explaining, and I'll wait for natural breaks before responding!", 'system-text');
+      }
+    }, 8000);
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' && e.target.tagName !== 'SELECT' && e.target.tagName !== 'BUTTON') {
+        e.preventDefault();
+        elements.toggleBtn.click();
+      }
+    });
+
+    // Enhanced error handling
+    window.addEventListener('error', (e) => {
+      console.error('Global error:', e.error);
+      appendOutput("⚠️ An unexpected error occurred. The session will continue.", 'error-text');
+    });
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      if (state.recognition) state.recognition.stop();
+      if (speechSynthesis.speaking) speechSynthesis.cancel();
+      clearTimeout(state.pauseTimer);
+      cleanupAnimations();
+    });
+
+    // Handle visibility changes (tab switching)
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && state.listening) {
+        // Pause listening when tab is not visible
+        console.log('Tab hidden, maintaining session but reducing activity');
+      }
+    });
+  </script>
+</body>
+</html>
